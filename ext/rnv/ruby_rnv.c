@@ -17,6 +17,11 @@
 #include "src/rnx.h"
 #include "src/ll.h"
 #include "src/er.h"
+#include "src/erbit.h"
+#include "src/rnc.h"
+#include "src/rnd.h"
+#include "src/rx.h"
+#include "src/xsd.h"
 
 #include <ruby.h>
 #include <ruby/io.h>
@@ -39,6 +44,7 @@ typedef struct validator
   int len_txt;
   int n_txt;
   int mixed;
+  int nexp;
 
   rnv_t *rnv;
   rn_st_t *rn_st;
@@ -50,107 +56,318 @@ typedef struct validator
 
 } validator_t;
 
-#include "src/erbit.h"
-#include "src/rnc.h"
-#include "src/rnd.h"
-#include "src/rx.h"
-#include "src/xsd.h"
+VALUE RNV;
 
 // convert error code to symbol
-ID errno_to_id(int erno) {
+ID errno_to_id(int erno)
+{
   ID id;
-  switch(erno) {
-  case (ERBIT_RNC|RNC_ER_IO): id=rb_intern("rnc_er_io"); break;
-  case (ERBIT_RNC|RNC_ER_UTF): id=rb_intern("rnc_er_urf"); break;
-  case (ERBIT_RNC|RNC_ER_XESC): id=rb_intern("rnc_er_xesc"); break;
-  case (ERBIT_RNC|RNC_ER_LEXP): id=rb_intern("rnc_er_lexp"); break;
-  case (ERBIT_RNC|RNC_ER_LLIT): id=rb_intern("rnc_er_llit"); break;
-  case (ERBIT_RNC|RNC_ER_LILL): id=rb_intern("rnc_er_lill"); break;
-  case (ERBIT_RNC|RNC_ER_SEXP): id=rb_intern("rnc_er_sexp"); break;
-  case (ERBIT_RNC|RNC_ER_SILL): id=rb_intern("rnc_er_still"); break;
-  case (ERBIT_RNC|RNC_ER_NOTGR): id=rb_intern("rnc_er_notgr"); break;
-  case (ERBIT_RNC|RNC_ER_EXT): id=rb_intern("rnc_er_ext"); break;
-  case (ERBIT_RNC|RNC_ER_DUPNS): id=rb_intern("rnc_er_dupns"); break;
-  case (ERBIT_RNC|RNC_ER_DUPDT): id=rb_intern("rnc_er_dupdt"); break;
-  case (ERBIT_RNC|RNC_ER_DFLTNS): id=rb_intern("rnc_er_dfltns"); break;
-  case (ERBIT_RNC|RNC_ER_DFLTDT): id=rb_intern("rnc_er_dfltdt"); break;
-  case (ERBIT_RNC|RNC_ER_NONS): id=rb_intern("rnc_er_nons"); break;
-  case (ERBIT_RNC|RNC_ER_NODT): id=rb_intern("rnc_er_nodt"); break;
-  case (ERBIT_RNC|RNC_ER_NCEX): id=rb_intern("rnc_er_ncex"); break;
-  case (ERBIT_RNC|RNC_ER_2HEADS): id=rb_intern("rnc_er_2heads"); break;
-  case (ERBIT_RNC|RNC_ER_COMBINE): id=rb_intern("rnc_er_combine"); break;
-  case (ERBIT_RNC|RNC_ER_OVRIDE): id=rb_intern("rnc_er_ovride"); break;
-  case (ERBIT_RNC|RNC_ER_EXPT): id=rb_intern("rnc_er_excpt"); break;
-  case (ERBIT_RNC|RNC_ER_INCONT): id=rb_intern("rnc_er_incont"); break;
-  case (ERBIT_RNC|RNC_ER_NOSTART): id=rb_intern("rnc_er_nostart"); break;
-  case (ERBIT_RNC|RNC_ER_UNDEF): id=rb_intern("rnc_er_undef"); break;
+  switch (erno)
+  {
+  case (ERBIT_RNC | RNC_ER_IO):
+    id = rb_intern("rnc_er_io");
+    break;
+  case (ERBIT_RNC | RNC_ER_UTF):
+    id = rb_intern("rnc_er_urf");
+    break;
+  case (ERBIT_RNC | RNC_ER_XESC):
+    id = rb_intern("rnc_er_xesc");
+    break;
+  case (ERBIT_RNC | RNC_ER_LEXP):
+    id = rb_intern("rnc_er_lexp");
+    break;
+  case (ERBIT_RNC | RNC_ER_LLIT):
+    id = rb_intern("rnc_er_llit");
+    break;
+  case (ERBIT_RNC | RNC_ER_LILL):
+    id = rb_intern("rnc_er_lill");
+    break;
+  case (ERBIT_RNC | RNC_ER_SEXP):
+    id = rb_intern("rnc_er_sexp");
+    break;
+  case (ERBIT_RNC | RNC_ER_SILL):
+    id = rb_intern("rnc_er_still");
+    break;
+  case (ERBIT_RNC | RNC_ER_NOTGR):
+    id = rb_intern("rnc_er_notgr");
+    break;
+  case (ERBIT_RNC | RNC_ER_EXT):
+    id = rb_intern("rnc_er_ext");
+    break;
+  case (ERBIT_RNC | RNC_ER_DUPNS):
+    id = rb_intern("rnc_er_dupns");
+    break;
+  case (ERBIT_RNC | RNC_ER_DUPDT):
+    id = rb_intern("rnc_er_dupdt");
+    break;
+  case (ERBIT_RNC | RNC_ER_DFLTNS):
+    id = rb_intern("rnc_er_dfltns");
+    break;
+  case (ERBIT_RNC | RNC_ER_DFLTDT):
+    id = rb_intern("rnc_er_dfltdt");
+    break;
+  case (ERBIT_RNC | RNC_ER_NONS):
+    id = rb_intern("rnc_er_nons");
+    break;
+  case (ERBIT_RNC | RNC_ER_NODT):
+    id = rb_intern("rnc_er_nodt");
+    break;
+  case (ERBIT_RNC | RNC_ER_NCEX):
+    id = rb_intern("rnc_er_ncex");
+    break;
+  case (ERBIT_RNC | RNC_ER_2HEADS):
+    id = rb_intern("rnc_er_2heads");
+    break;
+  case (ERBIT_RNC | RNC_ER_COMBINE):
+    id = rb_intern("rnc_er_combine");
+    break;
+  case (ERBIT_RNC | RNC_ER_OVRIDE):
+    id = rb_intern("rnc_er_ovride");
+    break;
+  case (ERBIT_RNC | RNC_ER_EXPT):
+    id = rb_intern("rnc_er_excpt");
+    break;
+  case (ERBIT_RNC | RNC_ER_INCONT):
+    id = rb_intern("rnc_er_incont");
+    break;
+  case (ERBIT_RNC | RNC_ER_NOSTART):
+    id = rb_intern("rnc_er_nostart");
+    break;
+  case (ERBIT_RNC | RNC_ER_UNDEF):
+    id = rb_intern("rnc_er_undef");
+    break;
 
-  case (ERBIT_RND|RND_ER_LOOPST): id=rb_intern("rnd_er_loopst"); break;
-  case (ERBIT_RND|RND_ER_LOOPEL): id=rb_intern("rnd_er_loopel"); break;
-  case (ERBIT_RND|RND_ER_CTYPE): id=rb_intern("rnd_er_ctype"); break;
-  case (ERBIT_RND|RND_ER_BADSTART): id=rb_intern("rnd_er_badstart"); break;
-  case (ERBIT_RND|RND_ER_BADMORE): id=rb_intern("rnd_er_badmore"); break;
-  case (ERBIT_RND|RND_ER_BADEXPT): id=rb_intern("rnd_er_badexpt"); break;
-  case (ERBIT_RND|RND_ER_BADLIST): id=rb_intern("rnd_er_badlist"); break;
-  case (ERBIT_RND|RND_ER_BADATTR): id=rb_intern("rnd_er_badattr"); break;
+  case (ERBIT_RND | RND_ER_LOOPST):
+    id = rb_intern("rnd_er_loopst");
+    break;
+  case (ERBIT_RND | RND_ER_LOOPEL):
+    id = rb_intern("rnd_er_loopel");
+    break;
+  case (ERBIT_RND | RND_ER_CTYPE):
+    id = rb_intern("rnd_er_ctype");
+    break;
+  case (ERBIT_RND | RND_ER_BADSTART):
+    id = rb_intern("rnd_er_badstart");
+    break;
+  case (ERBIT_RND | RND_ER_BADMORE):
+    id = rb_intern("rnd_er_badmore");
+    break;
+  case (ERBIT_RND | RND_ER_BADEXPT):
+    id = rb_intern("rnd_er_badexpt");
+    break;
+  case (ERBIT_RND | RND_ER_BADLIST):
+    id = rb_intern("rnd_er_badlist");
+    break;
+  case (ERBIT_RND | RND_ER_BADATTR):
+    id = rb_intern("rnd_er_badattr");
+    break;
 
-  case (ERBIT_RX|RX_ER_BADCH): id=rb_intern("rx_er_badch"); break;
-  case (ERBIT_RX|RX_ER_UNFIN): id=rb_intern("rx_er_unfin"); break;
-  case (ERBIT_RX|RX_ER_NOLSQ): id=rb_intern("rx_er_nolsq"); break;
-  case (ERBIT_RX|RX_ER_NORSQ): id=rb_intern("rx_er_norsq"); break;
-  case (ERBIT_RX|RX_ER_NOLCU): id=rb_intern("rx_er_nolcu"); break;
-  case (ERBIT_RX|RX_ER_NORCU): id=rb_intern("rx_er_norcu"); break;
-  case (ERBIT_RX|RX_ER_NOLPA): id=rb_intern("rx_er_nolpa"); break;
-  case (ERBIT_RX|RX_ER_NORPA): id=rb_intern("rx_er_norpa"); break;
-  case (ERBIT_RX|RX_ER_BADCL): id=rb_intern("rx_er_badcl"); break;
-  case (ERBIT_RX|RX_ER_NODGT): id=rb_intern("rx_er_nodgt"); break;
-  case (ERBIT_RX|RX_ER_DNUOB): id=rb_intern("rx_er_dnuob"); break;
-  case (ERBIT_RX|RX_ER_NOTRC): id=rb_intern("rx_er_notrc"); break;
+  case (ERBIT_RX | RX_ER_BADCH):
+    id = rb_intern("rx_er_badch");
+    break;
+  case (ERBIT_RX | RX_ER_UNFIN):
+    id = rb_intern("rx_er_unfin");
+    break;
+  case (ERBIT_RX | RX_ER_NOLSQ):
+    id = rb_intern("rx_er_nolsq");
+    break;
+  case (ERBIT_RX | RX_ER_NORSQ):
+    id = rb_intern("rx_er_norsq");
+    break;
+  case (ERBIT_RX | RX_ER_NOLCU):
+    id = rb_intern("rx_er_nolcu");
+    break;
+  case (ERBIT_RX | RX_ER_NORCU):
+    id = rb_intern("rx_er_norcu");
+    break;
+  case (ERBIT_RX | RX_ER_NOLPA):
+    id = rb_intern("rx_er_nolpa");
+    break;
+  case (ERBIT_RX | RX_ER_NORPA):
+    id = rb_intern("rx_er_norpa");
+    break;
+  case (ERBIT_RX | RX_ER_BADCL):
+    id = rb_intern("rx_er_badcl");
+    break;
+  case (ERBIT_RX | RX_ER_NODGT):
+    id = rb_intern("rx_er_nodgt");
+    break;
+  case (ERBIT_RX | RX_ER_DNUOB):
+    id = rb_intern("rx_er_dnuob");
+    break;
+  case (ERBIT_RX | RX_ER_NOTRC):
+    id = rb_intern("rx_er_notrc");
+    break;
 
-  case (ERBIT_XSD|XSD_ER_TYP): id=rb_intern("xsd_er_typ"); break;
-  case (ERBIT_XSD|XSD_ER_PAR): id=rb_intern("xsd_er_par"); break;
-  case (ERBIT_XSD|XSD_ER_PARVAL): id=rb_intern("xsd_er_parval"); break;
-  case (ERBIT_XSD|XSD_ER_VAL): id=rb_intern("xsd_er_val"); break;
-  case (ERBIT_XSD|XSD_ER_NPAT): id=rb_intern("xsd_er_npat"); break;
-  case (ERBIT_XSD|XSD_ER_WS): id=rb_intern("xsd_er_ws"); break;
-  case (ERBIT_XSD|XSD_ER_ENUM): id=rb_intern("xsd_er_enum"); break;
+  case (ERBIT_XSD | XSD_ER_TYP):
+    id = rb_intern("xsd_er_typ");
+    break;
+  case (ERBIT_XSD | XSD_ER_PAR):
+    id = rb_intern("xsd_er_par");
+    break;
+  case (ERBIT_XSD | XSD_ER_PARVAL):
+    id = rb_intern("xsd_er_parval");
+    break;
+  case (ERBIT_XSD | XSD_ER_VAL):
+    id = rb_intern("xsd_er_val");
+    break;
+  case (ERBIT_XSD | XSD_ER_NPAT):
+    id = rb_intern("xsd_er_npat");
+    break;
+  case (ERBIT_XSD | XSD_ER_WS):
+    id = rb_intern("xsd_er_ws");
+    break;
+  case (ERBIT_XSD | XSD_ER_ENUM):
+    id = rb_intern("xsd_er_enum");
+    break;
 
-  case (ERBIT_DRV|DRV_ER_NODTL): id=rb_intern("drv_er_nodtl"); break;
+  case (ERBIT_DRV | DRV_ER_NODTL):
+    id = rb_intern("drv_er_nodtl");
+    break;
 
-  case (ERBIT_RNV|RNV_ER_ELEM): id=rb_intern("rnv_er_elem"); break;
-  case (ERBIT_RNV|RNV_ER_AKEY): id=rb_intern("rnv_er_akey"); break;
-  case (ERBIT_RNV|RNV_ER_AVAL): id=rb_intern("rnv_er_aval"); break;
-  case (ERBIT_RNV|RNV_ER_EMIS): id=rb_intern("rnv_er_emis"); break;
-  case (ERBIT_RNV|RNV_ER_AMIS): id=rb_intern("rnv_er_amis"); break;
-  case (ERBIT_RNV|RNV_ER_UFIN): id=rb_intern("rnv_er_ufin"); break;
-  case (ERBIT_RNV|RNV_ER_TEXT): id=rb_intern("rnv_er_text"); break;
-  case (ERBIT_RNV|RNV_ER_NOTX): id=rb_intern("rnv_er_notx"); break;
+  case (ERBIT_RNV | RNV_ER_ELEM):
+    id = rb_intern("rnv_er_elem");
+    break;
+  case (ERBIT_RNV | RNV_ER_AKEY):
+    id = rb_intern("rnv_er_akey");
+    break;
+  case (ERBIT_RNV | RNV_ER_AVAL):
+    id = rb_intern("rnv_er_aval");
+    break;
+  case (ERBIT_RNV | RNV_ER_EMIS):
+    id = rb_intern("rnv_er_emis");
+    break;
+  case (ERBIT_RNV | RNV_ER_AMIS):
+    id = rb_intern("rnv_er_amis");
+    break;
+  case (ERBIT_RNV | RNV_ER_UFIN):
+    id = rb_intern("rnv_er_ufin");
+    break;
+  case (ERBIT_RNV | RNV_ER_TEXT):
+    id = rb_intern("rnv_er_text");
+    break;
+  case (ERBIT_RNV | RNV_ER_NOTX):
+    id = rb_intern("rnv_er_notx");
+    break;
 
-  default: id=rb_intern("unknown"); break;
-
+  default:
+    id = rb_intern("unknown");
+    break;
   }
   return id;
 }
 
-void ruby_verror_handler(rnv_t *rnv, int erno, char *format, va_list ap)
+int ruby_verror_handler(rnv_t *rnv, int erno, char *format, va_list ap)
 {
   VALUE self = (VALUE)rnv->user_data;
   validator_t *validator;
+
   Data_Get_Struct(self, validator_t, validator);
+
+  rnx_st_t *rnx_st = validator->rnx_st;
 
   VALUE errors = rb_iv_get(self, "@errors");
 
   VALUE error_array = rb_ary_new2(2);
   VALUE error_str = rb_vsprintf(format, ap);
   VALUE error_erno = ID2SYM(errno_to_id(erno));
-  //VALUE error_erno = INT2NUM(erno);
-  rb_ary_push(error_array, error_erno);
-  rb_ary_push(error_array, error_str);
 
-  rb_ary_push(error_array, rb_iv_get(self, "@last_line"));
-  rb_ary_push(error_array, rb_iv_get(self, "@last_col"));
+  // lazyly strip with ruby
+  rb_funcall(error_str, rb_intern("strip!"), 0);
 
-  rb_ary_push(errors, error_array);
+  VALUE err_class = rb_const_get(RNV, rb_intern("Error"));
+  VALUE err_obj = rb_class_new_instance(0, NULL, err_class);
+  rb_iv_set(err_obj, "@validator", self);
+  rb_iv_set(err_obj, "@code", error_erno);
+  rb_iv_set(err_obj, "@message", error_str);
+  rb_iv_set(err_obj, "@line", rb_iv_get(self, "@last_line"));
+  rb_iv_set(err_obj, "@col", rb_iv_get(self, "@last_col"));
+
+  VALUE expected = rb_str_new2("");
+  if (erno & ERBIT_RNV)
+  {
+    if (validator->nexp)
+    {
+      int req = 2, i = 0;
+      char *s;
+      while (req--)
+      {
+        rnx_expected(rnv, rnx_st, validator->previous, req);
+        if (i == rnv->rnx_n_exp)
+          continue;
+        if (rnv->rnx_n_exp > validator->nexp)
+          break;
+
+        expected = rb_str_cat2(expected, (char *)(req ? "required: " : "allowed: "));
+
+        for (; i != rnv->rnx_n_exp; ++i)
+        {
+          s = rnx_p2str(rnv, rnv->rnx_exp[i]);
+          expected = rb_str_cat2(expected, s);
+          if (i < rnv->rnx_n_exp - 1)
+            expected = rb_str_cat2(expected, ", ");
+          m_free(s);
+        }
+        expected = rb_str_cat2(expected, "; ");
+      }
+    }
+  }
+
+  rb_iv_set(err_obj, "@expected", expected);
+
+  rb_ary_push(errors, err_obj);
+}
+
+/*
+ * @return [String]
+ */
+VALUE rb_error_inspect(VALUE self)
+{
+  VALUE code = rb_iv_get(self, "@code");
+  VALUE message = rb_iv_get(self, "@message");
+  VALUE expected = rb_iv_get(self, "@expected");
+  VALUE line = rb_iv_get(self, "@line");
+  VALUE col = rb_iv_get(self, "@col");
+
+  VALUE ret = rb_str_new2("#<RNV::Error ");
+  ret = rb_str_cat2(ret, "code: :");
+  ret = rb_str_append(ret, rb_obj_as_string(code));
+  ret = rb_str_cat2(ret, ", ");
+  ret = rb_str_cat2(ret, "message: '");
+  ret = rb_str_append(ret, message);
+  ret = rb_str_cat2(ret, "', ");
+  ret = rb_str_cat2(ret, "expected: '");
+  ret = rb_str_append(ret, expected);
+  ret = rb_str_cat2(ret, "', ");
+  ret = rb_str_cat2(ret, "line: ");
+  ret = rb_str_append(ret, rb_obj_as_string(line));
+  ret = rb_str_cat2(ret, ", ");
+  ret = rb_str_cat2(ret, "col: ");
+  ret = rb_str_append(ret, rb_obj_as_string(col));
+  ret = rb_str_cat2(ret, ">");
+  return ret;
+}
+
+/*
+ * @return [String]
+ */
+VALUE rb_error_to_s(VALUE self)
+{
+  VALUE message = rb_iv_get(self, "@message");
+  VALUE line = rb_iv_get(self, "@line");
+  VALUE col = rb_iv_get(self, "@col");
+
+  VALUE ret = rb_str_new2("");
+
+  ret = rb_str_append(ret, rb_obj_as_string(line));
+  ret = rb_str_cat2(ret, ":");
+  ret = rb_str_append(ret, rb_obj_as_string(col));
+
+  ret = rb_str_cat2(ret, ": error: ");
+
+  ret = rb_str_append(ret, message);
+
+  return ret;
 }
 
 void validator_free(validator_t *validator)
@@ -216,10 +433,11 @@ VALUE rb_validator_init(VALUE self)
   rnx_init(validator->rnv, validator->rnx_st);
 
   validator->opened = 0;
-  validator->rnv->user_data = self;
+  validator->rnv->user_data = (void *)self;
   validator->rnv->verror_handler = &ruby_verror_handler;
+  validator->nexp = 16; /* maximum number of candidates to display */
 
-  VALUE errors = rb_iv_set(self, "@errors", rb_ary_new2(0));
+  rb_iv_set(self, "@errors", rb_ary_new2(0));
 
   return self;
 }
@@ -235,6 +453,11 @@ static void validator_load(validator_t *validator)
   validator->mixed = 0;
 }
 
+/*
+ * load schema from a buffer
+ * @param [String] r_str buffer
+ * @return [String]
+ */
 VALUE rb_validator_load_string(VALUE self, VALUE r_str)
 {
   validator_t *validator;
@@ -256,6 +479,11 @@ VALUE rb_validator_load_string(VALUE self, VALUE r_str)
   return INT2NUM(validator->ok);
 }
 
+/*
+ * load schema from a file
+ * @param [String] r_fn filename
+ * @return [String]
+ */
 VALUE rb_validator_load_file(VALUE self, VALUE r_fn)
 {
   validator_t *validator;
@@ -283,6 +511,10 @@ VALUE rb_validator_load_file(VALUE self, VALUE r_fn)
   return INT2NUM(validator->ok);
 }
 
+/*
+ * get errors from current validator
+ * @return [Array<RNV::Error>]
+ */
 VALUE rb_validator_errors(VALUE self)
 {
   validator_t *validator;
@@ -298,6 +530,11 @@ static void flush_text(validator_t *validator)
   validator->text[validator->n_txt = 0] = '\0';
 }
 
+/*
+ * to be called by SAX characters handler
+ * @param [String] r_str characters
+ * @return [Integer]
+ */
 VALUE rb_validator_characters(VALUE self, VALUE r_str)
 {
   validator_t *validator;
@@ -327,6 +564,12 @@ VALUE rb_validator_characters(VALUE self, VALUE r_str)
   return INT2NUM(validator->ok);
 }
 
+/*
+ * to be called by SAX start tag handler
+ * @param [String] r_name tag name, must be in the form 'NS_URI:TAG_NAME'
+ * @param [Array<String>] r_attrs flattened array of tag attributes in the form ['NS_URI:ATTR_NAME','ATTR_VALUE']
+ * @return [Integer]
+ */
 VALUE rb_validator_start_tag(VALUE self, VALUE r_name, VALUE r_attrs)
 {
   validator_t *validator;
@@ -366,6 +609,11 @@ VALUE rb_validator_start_tag(VALUE self, VALUE r_name, VALUE r_attrs)
   return INT2NUM(validator->ok);
 }
 
+/*
+ * to be called by SAX end tag handler
+ * @param [String] r_name tag name, must be in the form 'NS_URI:TAG_NAME'
+ * @return [Integer]
+ */
 VALUE rb_validator_end_tag(VALUE self, VALUE r_name)
 {
   validator_t *validator;
@@ -394,7 +642,33 @@ VALUE rb_validator_end_tag(VALUE self, VALUE r_name)
 // The initialization method for this module
 void Init_rnv()
 {
-  VALUE RNV = rb_define_module("RNV");
+  RNV = rb_define_module("RNV");
+
+  VALUE Error = rb_define_class_under(RNV, "Error", rb_cObject);
+
+  rb_define_method(Error, "inspect", rb_error_inspect, 0);
+  rb_define_method(Error, "to_s", rb_error_to_s, 0);
+
+  /*
+   * error symbol code
+   * @return [Symbol]
+   */
+  rb_define_attr(Error, "code", 1, 0);
+  /*
+   * error message
+   * @return [String]
+   */
+  rb_define_attr(Error, "message", 1, 0);
+  /*
+   * error line
+   * @return [Integer]
+   */
+  rb_define_attr(Error, "line", 1, 0);
+  /*
+   * error column
+   * @return [Integer]
+   */
+  rb_define_attr(Error, "col", 1, 0);
 
   VALUE Validator = rb_define_class_under(RNV, "Validator", rb_cObject);
 
@@ -404,10 +678,20 @@ void Init_rnv()
   rb_define_method(Validator, "load_file", rb_validator_load_file, 1);
   rb_define_method(Validator, "load_string", rb_validator_load_string, 1);
   rb_define_method(Validator, "errors", rb_validator_errors, 0);
+
   rb_define_method(Validator, "start_tag", rb_validator_start_tag, 2);
   rb_define_method(Validator, "characters", rb_validator_characters, 1);
   rb_define_method(Validator, "end_tag", rb_validator_end_tag, 1);
 
+
+  /*
+   * last line processed, set by SAX handler
+   * @return [Integer]
+   */
   rb_define_attr(Validator, "last_line", 1, 1);
+  /*
+   * last column processed, set by SAX handler
+   * @return [Integer]
+   */
   rb_define_attr(Validator, "last_col", 1, 1);
 }

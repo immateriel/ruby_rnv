@@ -51,6 +51,9 @@ class TestSuite < Minitest::Test
     invalid_xmls.each do |xml|
       v = RNV::NokogiriValidator.validate(rnc,xml)
       #puts "#{rnc} -> #{xml} #{v.errors}"
+      #v.errors.each do |e|
+        #puts e
+      #end
       if v.errors.length == 0
         puts "FAIL should be invalid #{rnc} -> #{xml}"
       end
