@@ -1,0 +1,10 @@
+namespace rng = "http://relaxng.org/ns/structure/1.0"
+
+comment [ ]
+comment [ ]
+[ comment [ ] ]
+start =
+  [ comment [ ] comment [ ] ]
+  element [ comment [ ] ] foo { string >> comment [ ] }
+  >> comment [ ]
+comment [ ]

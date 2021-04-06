@@ -1,0 +1,4 @@
+element foo {
+  (attribute bar { text }
+   | element bar { text })+
+}

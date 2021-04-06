@@ -1,0 +1,6 @@
+default namespace = ""
+
+element foo {
+  element bar { empty },
+  element baz { empty }
+}

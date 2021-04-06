@@ -1,0 +1,11 @@
+namespace eg = "http://www.example.com"
+
+[ eg:comment = "" ]
+grammar {
+  [ eg:comment = "" ]
+  start =
+    [ eg:comment = "" ]
+    element [ eg:comment = "" ] foo {
+      [ eg:comment = "" ] string, [ eg:comment = "" ] empty
+    }
+}

@@ -1,0 +1,7 @@
+element foo {
+  attribute a1 {
+    attribute a2 {
+      attribute a3 { notAllowed }
+    }
+  }?
+}

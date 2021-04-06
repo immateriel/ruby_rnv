@@ -1,0 +1,4 @@
+default namespace = ""
+namespace ns1 = "http://www.example.com"
+
+element ns1:* - foo { empty }

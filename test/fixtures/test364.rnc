@@ -1,0 +1,6 @@
+element foo {
+  "x"
+  | mixed {
+      element bar { empty }
+    }
+}

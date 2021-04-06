@@ -1,0 +1,7 @@
+start =
+  element foo {
+    (attribute bar { empty },
+     element baz1 { empty })
+    | (attribute bar { text },
+       element baz2 { empty })
+  }

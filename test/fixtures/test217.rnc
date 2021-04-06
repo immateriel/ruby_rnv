@@ -1,0 +1,5 @@
+default namespace ns1 = "http://www.example.com"
+
+element foo {
+  attribute ns1:bar { text }
+}

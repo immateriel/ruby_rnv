@@ -1,0 +1,8 @@
+start = foo
+foo =
+  element outerFoo {
+    grammar {
+      start = foo
+      foo = element innerFoo { empty }
+    }
+  }

@@ -1,0 +1,5 @@
+start =
+  element foo {
+    (attribute * { text },
+     empty)+
+  }

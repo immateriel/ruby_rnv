@@ -1,0 +1,7 @@
+namespace ns1 = "http://www.example.com/1"
+namespace ns2 = "http://www.example.com/2"
+
+element foo {
+  attribute ns1:* { text }+,
+  attribute ns2:* { text }+
+}

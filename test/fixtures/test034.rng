@@ -1,0 +1,6 @@
+<grammar xmlns="http://relaxng.org/ns/structure/1.0">
+  <include href="x"/>
+  <start>
+    <ref name="foo"/>
+  </start>
+</grammar>

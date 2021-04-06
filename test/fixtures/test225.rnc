@@ -1,0 +1,9 @@
+default namespace = "http://www.example.com"
+
+div {
+  div {
+    start = foo
+  }
+  foo = element foo { empty }
+}
+div { }

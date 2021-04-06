@@ -1,0 +1,4 @@
+start = x
+x |= element foo1 { empty }
+x |= element foo2 { empty }
+x = element foo3 { empty }

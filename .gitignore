@@ -1,0 +1,6 @@
+.bundle/
+.idea/
+.vscode/
+Gemfile.lock
+tmp/
+lib/rnv/rnv.so

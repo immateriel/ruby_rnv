@@ -1,0 +1,5 @@
+namespace eg = "http://www.example.com"
+
+element foo {
+  attribute eg:bar { text }
+}

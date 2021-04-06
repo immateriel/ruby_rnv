@@ -1,0 +1,7 @@
+start |= x
+x = y
+y =
+  grammar {
+    start &= parent z
+  }
+z = element foo { empty }

@@ -1,0 +1,5 @@
+<foo>
+x
+<?target data?>
+y
+<bar/></foo>

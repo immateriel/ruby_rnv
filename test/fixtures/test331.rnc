@@ -1,0 +1,4 @@
+element foo {
+  attribute bar { text },
+  attribute baz { text }
+}

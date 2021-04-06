@@ -1,0 +1,7 @@
+element foo {
+  grammar {
+    start &= element bar1 { empty }
+    start = element bar2 { empty }
+    start &= element bar3 { empty }
+  }
+}

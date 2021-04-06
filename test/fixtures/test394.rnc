@@ -1,0 +1,6 @@
+element foo {
+  (attribute bar1 { text },
+   attribute bar2 { text })
+  | (attribute bar1 { text },
+     attribute bar3 { text })
+}

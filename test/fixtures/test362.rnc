@@ -1,0 +1,3 @@
+element foo {
+  xsd:string { minLength = "2" }
+}

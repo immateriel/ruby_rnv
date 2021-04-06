@@ -1,0 +1,5 @@
+default namespace = "http://www.example.com"
+
+element foo {
+  attribute bar { text }
+}

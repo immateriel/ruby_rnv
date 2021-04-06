@@ -1,0 +1,6 @@
+namespace inherit = inherit
+
+element foo {
+  attribute bar { text },
+  attribute * - inherit:bar { text }+
+}

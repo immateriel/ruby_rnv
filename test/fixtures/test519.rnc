@@ -1,0 +1,6 @@
+element foo {
+  attribute bar {
+    notAllowed,
+    attribute baz { text }
+  }?
+}

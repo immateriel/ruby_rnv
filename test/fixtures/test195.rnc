@@ -1,0 +1,11 @@
+namespace ns1 = "http://www.example.com"
+namespace rng = "http://relaxng.org/ns/structure/1.0"
+
+ns1:comment [ ]
+ns1:comment [ ]
+[ ns1:comment [ ] ]
+start =
+  [ ns1:comment [ ] ns1:comment [ ] ]
+  element [ ns1:comment [ ] ] foo { string >> ns1:comment [ ] }
+  >> ns1:comment [ ]
+ns1:comment [ ]

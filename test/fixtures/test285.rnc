@@ -1,0 +1,5 @@
+start = element foo { bars }
+bars =
+  element bar { empty },
+  element bar { empty },
+  element bar { empty }

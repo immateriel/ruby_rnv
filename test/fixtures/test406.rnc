@@ -1,0 +1,5 @@
+element foo {
+  element bar { empty },
+  (empty
+   | element baz { empty })
+}

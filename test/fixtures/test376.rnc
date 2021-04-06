@@ -1,0 +1,1 @@
+element foo { "x\x{a}" ~ "\x{d}	 y" }

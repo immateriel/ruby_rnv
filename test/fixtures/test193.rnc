@@ -1,0 +1,16 @@
+namespace eg = "http://www.example.com"
+
+eg:comment [ ]
+eg:comment [ ]
+[ eg:comment [ ] ]
+start =
+  [ eg:comment [ ] eg:comment [ ] ]
+  element [ eg:comment [ ] ] foo {
+    string >> eg:comment [ ],
+    [ eg:comment [ ] eg:comment [ ] ]
+    empty
+    >> eg:comment [ ]
+    >> eg:comment [ ]
+  }
+  >> eg:comment [ ]
+eg:comment [ ]

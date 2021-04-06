@@ -1,0 +1,3 @@
+default namespace = "xyzzy"
+
+element foo { empty }

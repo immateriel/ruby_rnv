@@ -1,0 +1,7 @@
+element foo {
+  attribute bar {
+    text
+    | (notAllowed,
+       attribute baz { text })
+  }
+}
