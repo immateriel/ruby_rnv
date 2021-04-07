@@ -3,6 +3,7 @@ spec = Gem::Specification.new do |s|
   s.version = "0.2.0"
   s.summary = "RelaxNG compact syntax validator"
   s.author  = "Julien Boulnois"
+  s.license = "MIT"
 
   s.extensions = "ext/rnv/extconf.rb"
   s.required_ruby_version = ">= 2.4"
