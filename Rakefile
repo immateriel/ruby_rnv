@@ -2,8 +2,11 @@ require "rake/extensiontask"
 require "bundler/gem_tasks"
 require "rake/testtask"
 
-Rake::ExtensionTask.new "rnv" do |ext|
-  ext.lib_dir = "lib/rnv"
+spec = Bundler::GemHelper.gemspec
+
+Rake::ExtensionTask.new "rnv", spec do |ext|
+  ext.ext_dir = "ext/rnv/"
+  ext.lib_dir = "lib/rnv/"
 end
 
 Rake::TestTask.new(:test) do |t|

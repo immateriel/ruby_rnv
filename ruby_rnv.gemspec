@@ -1,10 +1,11 @@
-Gem::Specification.new do |s|
+spec = Gem::Specification.new do |s|
   s.name    = "ruby_rnv"
   s.version = "0.2.0"
   s.summary = "RelaxNG compact syntax validator"
   s.author  = "Julien Boulnois"
 
   s.extensions = "ext/rnv/extconf.rb"
+  s.required_ruby_version = ">= 2.4"
 
   s.files = ["Gemfile"] +
             Dir.glob("ext/**/*.{c,h,rb}") +
