@@ -1,2 +1,2 @@
 require 'rnv/rnv'
-require 'rnv/nokogiri_validator'
+require 'rnv/validator'

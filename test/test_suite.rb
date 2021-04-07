@@ -19,6 +19,20 @@ class TestSuite < Minitest::Test
     end
   end
 
+  def test_parse_from_io
+    validator = RNV::Validator.new
+    validator.load_schema_from_file("test/fixtures/test001.rnc")
+    validator.parse_file(File.open("test/fixtures/test001_1_valid.xml"))
+    assert_equal 0, validator.errors.length
+  end
+
+  def test_parse_from_string
+    validator = RNV::Validator.new
+    validator.load_schema_from_string(File.read("test/fixtures/test001.rnc"))
+    validator.parse_string(File.read("test/fixtures/test001_1_valid.xml"))
+    assert_equal 0, validator.errors.length
+  end
+
   private
 
   def process(rnc)
@@ -41,7 +55,9 @@ class TestSuite < Minitest::Test
     valid_xmls = Dir.glob(rnc_name+"*_valid.xml")
     valid_xmls.each do |xml|
       #puts "#{rnc} -> #{xml}"
-      v = RNV::NokogiriValidator.validate(rnc,xml)
+      v = RNV::Validator.new
+      v.load_schema_from_file(rnc)
+      v.parse_file(xml)
       if v.errors.length > 0
         puts "FAIL should be valid #{rnc} -> #{xml} : #{v.errors}"
       end
@@ -49,7 +65,9 @@ class TestSuite < Minitest::Test
     end
     invalid_xmls = Dir.glob(rnc_name+"*_invalid.xml")
     invalid_xmls.each do |xml|
-      v = RNV::NokogiriValidator.validate(rnc,xml)
+      v = RNV::Validator.new
+      v.load_schema_from_file(rnc)
+      v.parse_file(xml)
       #puts "#{rnc} -> #{xml} #{v.errors}"
       #v.errors.each do |e|
         #puts e

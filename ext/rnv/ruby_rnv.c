@@ -29,7 +29,7 @@
 #define LEN_T XCL_LEN_T
 #define LIM_T XCL_LIM_T
 
-typedef struct validator
+typedef struct document
 {
   char *fn;
   int start;
@@ -54,7 +54,7 @@ typedef struct validator
   rx_st_t *rx_st;
   rnd_st_t *rnd_st;
 
-} validator_t;
+} document_t;
 
 VALUE RNV;
 
@@ -260,11 +260,11 @@ ID errno_to_id(int erno)
 int ruby_verror_handler(rnv_t *rnv, int erno, char *format, va_list ap)
 {
   VALUE self = (VALUE)rnv->user_data;
-  validator_t *validator;
+  document_t *document;
 
-  Data_Get_Struct(self, validator_t, validator);
+  Data_Get_Struct(self, document_t, document);
 
-  rnx_st_t *rnx_st = validator->rnx_st;
+  rnx_st_t *rnx_st = document->rnx_st;
 
   VALUE errors = rb_iv_get(self, "@errors");
 
@@ -277,7 +277,7 @@ int ruby_verror_handler(rnv_t *rnv, int erno, char *format, va_list ap)
 
   VALUE err_class = rb_const_get(RNV, rb_intern("Error"));
   VALUE err_obj = rb_class_new_instance(0, NULL, err_class);
-  rb_iv_set(err_obj, "@validator", self);
+  rb_iv_set(err_obj, "@document", self);
   rb_iv_set(err_obj, "@code", error_erno);
   rb_iv_set(err_obj, "@message", error_str);
   rb_iv_set(err_obj, "@line", rb_iv_get(self, "@last_line"));
@@ -286,16 +286,16 @@ int ruby_verror_handler(rnv_t *rnv, int erno, char *format, va_list ap)
   VALUE expected = rb_str_new2("");
   if (erno & ERBIT_RNV)
   {
-    if (validator->nexp)
+    if (document->nexp)
     {
       int req = 2, i = 0;
       char *s;
       while (req--)
       {
-        rnx_expected(rnv, rnx_st, validator->previous, req);
+        rnx_expected(rnv, rnx_st, document->previous, req);
         if (i == rnv->rnx_n_exp)
           continue;
-        if (rnv->rnx_n_exp > validator->nexp)
+        if (rnv->rnx_n_exp > document->nexp)
           break;
 
         expected = rb_str_cat2(expected, (char *)(req ? "required: " : "allowed: "));
@@ -370,87 +370,96 @@ VALUE rb_error_to_s(VALUE self)
   return ret;
 }
 
-void validator_free(validator_t *validator)
+void document_free(document_t *document)
 {
   // FIXME : introduce *_delete functions
-  free(validator->rnd_st->flat);
-  free(validator->rnd_st);
+  if (document->rnd_st->flat)
+    free(document->rnd_st->flat);
+  free(document->rnd_st);
 
-  ht_dispose(&validator->rx_st->ht_r);
-  ht_dispose(&validator->rx_st->ht_p);
-  ht_dispose(&validator->rx_st->ht_2);
-  ht_dispose(&validator->rx_st->ht_m);
-  free(validator->rx_st->regex);
-  free(validator->rx_st->pattern);
-  free(validator->rx_st);
+  ht_dispose(&document->rx_st->ht_r);
+  ht_dispose(&document->rx_st->ht_p);
+  ht_dispose(&document->rx_st->ht_2);
+  ht_dispose(&document->rx_st->ht_m);
+  if (document->rx_st->regex)
+    free(document->rx_st->regex);
+  if (document->rx_st->pattern)
+    free(document->rx_st->pattern);
+  free(document->rx_st);
 
-  free(validator->drv_st->dtl);
-  ht_dispose(&validator->drv_st->ht_m);
-  free(validator->drv_st);
+  if (document->drv_st->dtl)
+    free(document->drv_st->dtl);
+  ht_dispose(&document->drv_st->ht_m);
+  free(document->drv_st);
 
-  free(validator->rnx_st);
+  free(document->rnx_st);
 
-  free(validator->rnc_st->path);
-  free(validator->rnc_st);
+  if (document->rnc_st->path)
+    free(document->rnc_st->path);
+  free(document->rnc_st);
 
-  ht_dispose(&validator->rn_st->ht_p);
-  ht_dispose(&validator->rn_st->ht_nc);
-  ht_dispose(&validator->rn_st->ht_s);
+  ht_dispose(&document->rn_st->ht_p);
+  ht_dispose(&document->rn_st->ht_nc);
+  ht_dispose(&document->rn_st->ht_s);
 
-  free(validator->rn_st);
+  free(document->rn_st);
 
-  free(validator->rnv->rn_pattern);
-  free(validator->rnv->rn_nameclass);
-  free(validator->rnv->rn_string);
-  free(validator->rnv->rnx_exp);
+  if (document->rnv->rn_pattern)
+    free(document->rnv->rn_pattern);
+  if (document->rnv->rn_nameclass)
+    free(document->rnv->rn_nameclass);
+  if (document->rnv->rn_string)
+    free(document->rnv->rn_string);
+  if (document->rnv->rnx_exp)
+    free(document->rnv->rnx_exp);
 
-  free(validator->rnv);
-  ruby_xfree(validator);
+  free(document->rnv);
+  ruby_xfree(document);
 }
 
-VALUE rb_validator_alloc(VALUE klass)
+VALUE rb_document_alloc(VALUE klass)
 {
-  validator_t *validator = ruby_xmalloc(sizeof(validator_t));
+  document_t *document = ruby_xmalloc(sizeof(document_t));
 
-  validator->rnv = malloc(sizeof(rnv_t));
-  validator->rn_st = malloc(sizeof(rn_st_t));
-  validator->rnc_st = malloc(sizeof(rnc_st_t));
-  validator->rnx_st = malloc(sizeof(rnx_st_t));
-  validator->drv_st = malloc(sizeof(drv_st_t));
-  validator->rx_st = malloc(sizeof(rx_st_t));
-  validator->rnd_st = malloc(sizeof(rnd_st_t));
+  document->rnv = malloc(sizeof(rnv_t));
+  document->rn_st = malloc(sizeof(rn_st_t));
+  document->rnc_st = malloc(sizeof(rnc_st_t));
+  document->rnx_st = malloc(sizeof(rnx_st_t));
+  document->drv_st = malloc(sizeof(drv_st_t));
+  document->rx_st = malloc(sizeof(rx_st_t));
+  document->rnd_st = malloc(sizeof(rnd_st_t));
 
-  return Data_Wrap_Struct(klass, NULL, validator_free, validator);
+  return Data_Wrap_Struct(klass, NULL, document_free, document);
 }
 
-VALUE rb_validator_init(VALUE self)
+VALUE rb_document_init(VALUE self)
 {
-  validator_t *validator;
-  Data_Get_Struct(self, validator_t, validator);
+  document_t *document;
+  Data_Get_Struct(self, document_t, document);
 
-  rnl_init(validator->rnv, validator->rn_st, validator->rnc_st);
-  rnv_init(validator->rnv, validator->drv_st, validator->rn_st, validator->rx_st);
-  rnx_init(validator->rnv, validator->rnx_st);
+  rnl_init(document->rnv, document->rn_st, document->rnc_st, document->rnd_st);
+  rnv_init(document->rnv, document->drv_st, document->rn_st, document->rx_st);
+  rnx_init(document->rnv, document->rnx_st);
 
-  validator->opened = 0;
-  validator->rnv->user_data = (void *)self;
-  validator->rnv->verror_handler = &ruby_verror_handler;
-  validator->nexp = 16; /* maximum number of candidates to display */
+  document->opened = document->ok = 0;
+  document->rnv->user_data = (void *)self;
+  document->rnv->verror_handler = &ruby_verror_handler;
+  document->nexp = 16; /* maximum number of candidates to display */
 
   rb_iv_set(self, "@errors", rb_ary_new2(0));
 
   return self;
 }
 
-static void validator_load(validator_t *validator)
+static void document_load(document_t *document)
 {
-  validator->ok = validator->start = validator->current = validator->previous = validator->opened;
-  validator->len_txt = LEN_T;
-  validator->text = (char *)m_alloc(validator->len_txt, sizeof(char));
+  document->ok = document->start = document->current = document->previous = document->opened;
+  document->len_txt = LEN_T;
+  document->text = (char *)m_alloc(document->len_txt, sizeof(char));
 
-  validator->text[0] = '\0';
-  validator->n_txt = 0;
-  validator->mixed = 0;
+  document->text[0] = '\0';
+  document->n_txt = 0;
+  document->mixed = 0;
 }
 
 /*
@@ -458,25 +467,25 @@ static void validator_load(validator_t *validator)
  * @param [String] r_str buffer
  * @return [String]
  */
-VALUE rb_validator_load_string(VALUE self, VALUE r_str)
+VALUE rb_document_load_string(VALUE self, VALUE r_str)
 {
-  validator_t *validator;
-  Data_Get_Struct(self, validator_t, validator);
+  document_t *document;
+  Data_Get_Struct(self, document_t, document);
 
   Check_Type(r_str, T_STRING);
 
   VALUE r_fn = rb_str_new2("");
-  validator->fn = RSTRING_PTR(r_fn);
+  document->fn = RSTRING_PTR(r_fn);
 
-  validator->opened = rnl_s(validator->rnv,
-                            validator->rnc_st,
-                            validator->rn_st,
-                            validator->rnd_st,
-                            validator->fn,
-                            RSTRING_PTR(r_str), RSTRING_LEN(r_str));
+  document->opened = rnl_s(document->rnv,
+                           document->rnc_st,
+                           document->rn_st,
+                           document->rnd_st,
+                           document->fn,
+                           RSTRING_PTR(r_str), RSTRING_LEN(r_str));
 
-  validator_load(validator);
-  return INT2NUM(validator->ok);
+  document_load(document);
+  return INT2NUM(document->ok);
 }
 
 /*
@@ -484,21 +493,21 @@ VALUE rb_validator_load_string(VALUE self, VALUE r_str)
  * @param [String] r_fn filename
  * @return [String]
  */
-VALUE rb_validator_load_file(VALUE self, VALUE r_fn)
+VALUE rb_document_load_file(VALUE self, VALUE r_fn)
 {
-  validator_t *validator;
-  Data_Get_Struct(self, validator_t, validator);
+  document_t *document;
+  Data_Get_Struct(self, document_t, document);
 
   switch (TYPE(r_fn))
   {
   case T_STRING:
-    validator->fn = RSTRING_PTR(r_fn);
+    document->fn = RSTRING_PTR(r_fn);
 
-    validator->opened = rnl_fn(validator->rnv,
-                               validator->rnc_st,
-                               validator->rn_st,
-                               validator->rnd_st,
-                               validator->fn);
+    document->opened = rnl_fn(document->rnv,
+                              document->rnc_st,
+                              document->rn_st,
+                              document->rnd_st,
+                              document->fn);
 
     break;
   case T_FILE: // TODO
@@ -507,27 +516,42 @@ VALUE rb_validator_load_file(VALUE self, VALUE r_fn)
     break;
   }
 
-  validator_load(validator);
-  return INT2NUM(validator->ok);
+  document_load(document);
+  return INT2NUM(document->ok);
 }
 
 /*
- * get errors from current validator
+ * get errors from current document
  * @return [Array<RNV::Error>]
  */
-VALUE rb_validator_errors(VALUE self)
+VALUE rb_document_errors(VALUE self)
 {
-  validator_t *validator;
-  Data_Get_Struct(self, validator_t, validator);
+  document_t *document;
+  Data_Get_Struct(self, document_t, document);
   return rb_iv_get(self, "@errors");
 }
 
-static void flush_text(validator_t *validator)
+/*
+ * is current document valid ?
+ * @return [Array<RNV::Error>]
+ */
+VALUE rb_document_valid(VALUE self)
 {
-  validator->ok = rnv_text(validator->rnv, validator->drv_st, validator->rn_st, validator->rx_st,
-                           &validator->current, &validator->previous, validator->text, validator->n_txt, validator->mixed) &&
-                  validator->ok;
-  validator->text[validator->n_txt = 0] = '\0';
+  document_t *document;
+  Data_Get_Struct(self, document_t, document);
+
+  if (document->ok)
+    return Qtrue;
+  else
+    return Qfalse;
+}
+
+static void flush_text(document_t *document)
+{
+  document->ok = rnv_text(document->rnv, document->drv_st, document->rn_st, document->rx_st,
+                          &document->current, &document->previous, document->text, document->n_txt, document->mixed) &&
+                 document->ok;
+  document->text[document->n_txt = 0] = '\0';
 }
 
 /*
@@ -535,33 +559,33 @@ static void flush_text(validator_t *validator)
  * @param [String] r_str characters
  * @return [Integer]
  */
-VALUE rb_validator_characters(VALUE self, VALUE r_str)
+VALUE rb_document_characters(VALUE self, VALUE r_str)
 {
-  validator_t *validator;
-  Data_Get_Struct(self, validator_t, validator);
+  document_t *document;
+  Data_Get_Struct(self, document_t, document);
 
-  if (validator->opened && validator->current != validator->rnv->rn_notAllowed)
+  if (document->opened && document->current != document->rnv->rn_notAllowed)
   {
     Check_Type(r_str, T_STRING);
     char *s = RSTRING_PTR(r_str);
     int len = RSTRING_LEN(r_str);
 
-    int newlen_txt = validator->n_txt + len + 1;
-    if (newlen_txt <= LIM_T && LIM_T < validator->len_txt)
+    int newlen_txt = document->n_txt + len + 1;
+    if (newlen_txt <= LIM_T && LIM_T < document->len_txt)
       newlen_txt = LIM_T;
-    else if (newlen_txt < validator->len_txt)
-      newlen_txt = validator->len_txt;
-    if (validator->len_txt != newlen_txt)
+    else if (newlen_txt < document->len_txt)
+      newlen_txt = document->len_txt;
+    if (document->len_txt != newlen_txt)
     {
-      validator->text = (char *)m_stretch(validator->text, validator->len_txt = newlen_txt, validator->n_txt, sizeof(char));
+      document->text = (char *)m_stretch(document->text, document->len_txt = newlen_txt, document->n_txt, sizeof(char));
     }
 
-    memcpy(validator->text + validator->n_txt, s, len);
-    validator->n_txt += len;
-    validator->text[validator->n_txt] = '\0'; /* '\0' guarantees that the text is bounded, and strto[ld] work for data */
+    memcpy(document->text + document->n_txt, s, len);
+    document->n_txt += len;
+    document->text[document->n_txt] = '\0'; /* '\0' guarantees that the text is bounded, and strto[ld] work for data */
   }
 
-  return INT2NUM(validator->ok);
+  return INT2NUM(document->ok);
 }
 
 /*
@@ -570,12 +594,12 @@ VALUE rb_validator_characters(VALUE self, VALUE r_str)
  * @param [Array<String>] r_attrs flattened array of tag attributes in the form ['NS_URI:ATTR_NAME','ATTR_VALUE']
  * @return [Integer]
  */
-VALUE rb_validator_start_tag(VALUE self, VALUE r_name, VALUE r_attrs)
+VALUE rb_document_start_tag(VALUE self, VALUE r_name, VALUE r_attrs)
 {
-  validator_t *validator;
-  Data_Get_Struct(self, validator_t, validator);
+  document_t *document;
+  Data_Get_Struct(self, document_t, document);
 
-  if (validator->opened && validator->current != validator->rnv->rn_notAllowed)
+  if (document->opened && document->current != document->rnv->rn_notAllowed)
   {
     char *name;
     char **attrs;
@@ -594,19 +618,19 @@ VALUE rb_validator_start_tag(VALUE self, VALUE r_name, VALUE r_attrs)
     }
     attrs[attrs_len] = 0; // zero terminated
 
-    validator->mixed = 1;
+    document->mixed = 1;
 
-    flush_text(validator);
+    flush_text(document);
     //printf("RNV START %d/%d %s %d\n", current, previous, name, attrs_len);
-    validator->ok = rnv_start_tag(validator->rnv, validator->drv_st, validator->rn_st, validator->rx_st,
-                                  &validator->current, &validator->previous, (char *)name, (char **)attrs) &&
-                    validator->ok;
+    document->ok = rnv_start_tag(document->rnv, document->drv_st, document->rn_st, document->rx_st,
+                                 &document->current, &document->previous, (char *)name, (char **)attrs) &&
+                   document->ok;
 
-    validator->mixed = 0;
+    document->mixed = 0;
     free(attrs);
   }
 
-  return INT2NUM(validator->ok);
+  return INT2NUM(document->ok);
 }
 
 /*
@@ -614,29 +638,29 @@ VALUE rb_validator_start_tag(VALUE self, VALUE r_name, VALUE r_attrs)
  * @param [String] r_name tag name, must be in the form 'NS_URI:TAG_NAME'
  * @return [Integer]
  */
-VALUE rb_validator_end_tag(VALUE self, VALUE r_name)
+VALUE rb_document_end_tag(VALUE self, VALUE r_name)
 {
-  validator_t *validator;
-  Data_Get_Struct(self, validator_t, validator);
+  document_t *document;
+  Data_Get_Struct(self, document_t, document);
 
-  if (validator->opened && validator->current != validator->rnv->rn_notAllowed)
+  if (document->opened && document->current != document->rnv->rn_notAllowed)
   {
     char *name;
 
     Check_Type(r_name, T_STRING);
     name = RSTRING_PTR(r_name);
 
-    flush_text(validator);
+    flush_text(document);
 
     //printf("RNV END %d/%d %s\n", current, previous, name);
-    validator->ok = rnv_end_tag(validator->rnv, validator->drv_st, validator->rn_st,
-                                &validator->current, &validator->previous, (char *)name) &&
-                    validator->ok;
+    document->ok = rnv_end_tag(document->rnv, document->drv_st, document->rn_st,
+                               &document->current, &document->previous, (char *)name) &&
+                   document->ok;
 
-    validator->mixed = 1;
+    document->mixed = 1;
   }
 
-  return INT2NUM(validator->ok);
+  return INT2NUM(document->ok);
 }
 
 // The initialization method for this module
@@ -670,28 +694,34 @@ void Init_rnv()
    */
   rb_define_attr(Error, "col", 1, 0);
 
-  VALUE Validator = rb_define_class_under(RNV, "Validator", rb_cObject);
+  VALUE Document = rb_define_class_under(RNV, "Document", rb_cObject);
 
-  rb_define_alloc_func(Validator, rb_validator_alloc);
-  rb_define_method(Validator, "initialize", rb_validator_init, 0);
+  rb_define_alloc_func(Document, rb_document_alloc);
+  rb_define_method(Document, "initialize", rb_document_init, 0);
 
-  rb_define_method(Validator, "load_file", rb_validator_load_file, 1);
-  rb_define_method(Validator, "load_string", rb_validator_load_string, 1);
-  rb_define_method(Validator, "errors", rb_validator_errors, 0);
+  rb_define_method(Document, "load_file", rb_document_load_file, 1);
+  rb_define_method(Document, "load_string", rb_document_load_string, 1);
+  //rb_define_method(Document, "errors", rb_document_errors, 0);
+  rb_define_method(Document, "valid?", rb_document_valid, 0);
 
-  rb_define_method(Validator, "start_tag", rb_validator_start_tag, 2);
-  rb_define_method(Validator, "characters", rb_validator_characters, 1);
-  rb_define_method(Validator, "end_tag", rb_validator_end_tag, 1);
-
+  rb_define_method(Document, "start_tag", rb_document_start_tag, 2);
+  rb_define_method(Document, "characters", rb_document_characters, 1);
+  rb_define_method(Document, "end_tag", rb_document_end_tag, 1);
 
   /*
    * last line processed, set by SAX handler
    * @return [Integer]
    */
-  rb_define_attr(Validator, "last_line", 1, 1);
+  rb_define_attr(Document, "last_line", 1, 1);
   /*
    * last column processed, set by SAX handler
    * @return [Integer]
    */
-  rb_define_attr(Validator, "last_col", 1, 1);
+  rb_define_attr(Document, "last_col", 1, 1);
+
+  /*
+ * errors from current document
+ * @return [Array<RNV::Error>]
+ */
+  rb_define_attr(Document, "errors", 1, 1);
 }

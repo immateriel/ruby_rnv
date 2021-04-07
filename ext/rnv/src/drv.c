@@ -57,11 +57,13 @@ static void new_memo(rnv_t *rnv, drv_st_t *drv_st, int typ) {
   drv_st->memo[drv_st->i_m][0]=typ;
 }
 
-static int equal_m(drv_st_t *drv_st, int m1,int m2) {
+static int equal_m(void *user, int m1,int m2) {
+  drv_st_t *drv_st = (drv_st_t *)user;
   int *me1=drv_st->memo[m1],*me2=drv_st->memo[m2];
   return (me1[0]==me2[0])&&(me1[1]==me2[1])&&(me1[2]==me2[2])&&(me1[3]==me2[3]);
 }
-static int hash_m(drv_st_t *drv_st, int m) {
+static int hash_m(void *user, int m) {
+  drv_st_t *drv_st = (drv_st_t *)user;
   int *me=drv_st->memo[m];
   return ((me[0]&0x7)|((me[1]^me[2]^me[3])<<3))*PRIME_M;
 }

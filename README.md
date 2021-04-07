@@ -8,6 +8,9 @@ The result is integrated with Nokogiri SAX parser to provide a high level ruby g
 ```ruby
 require 'rnv'
 
-validator = RNV::NokogiriValidator.validate("test/fixtures/test330.rnc","test/fixtures/test330_2_invalid.xml")
+validator = RNV::Validator.new
+validator.load_schema_from_file("test/fixtures/test330.rnc")
+validator.parse_file("test/fixtures/test330_2_invalid.xml")
+
 pp validator.errors # [#<RNV::Error code: :rnv_er_emis, message: 'incomplete content', line: 2, col: 8>, #<RNV::Error code: :rnv_er_elem, message: 'element ^bar not allowed', line: 3, col: 8>]
 ```

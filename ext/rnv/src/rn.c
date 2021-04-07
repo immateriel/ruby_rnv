@@ -268,17 +268,18 @@ void rn_add_pskey(rnv_t *rnv, rn_st_t *rn_st, char *s) {rn_st->i_s+=add_s(rnv, r
 void rn_add_psval(rnv_t *rnv, rn_st_t *rn_st, char *s) {rn_st->i_s+=add_s(rnv, rn_st, s);}
 void rn_end_ps(rnv_t *rnv, rn_st_t *rn_st) {rn_st->i_s+=add_s(rnv, rn_st, ""); rn_st->adding_ps=0;}
 
-static int hash_p(rnv_t *rnv, int i);
-static int hash_nc(rnv_t *rnv, int i);
-static int hash_s(rnv_t *rnv, int i);
+static int hash_p(void *user, int i);
+static int hash_nc(void *user, int i);
+static int hash_s(void *user, int i);
 
-static int equal_p(rnv_t *rnv, int p1,int p2);
-static int equal_nc(rnv_t *rnv, int nc1,int nc2);
-static int equal_s(rnv_t *rnv, int s1,int s2);
+static int equal_p(void *user, int p1,int p2);
+static int equal_nc(void *user, int nc1,int nc2);
+static int equal_s(void *user, int s1,int s2);
 
 static void windup(rnv_t *rnv, rn_st_t *rn_st);
 
 void rn_init(rnv_t *rnv, rn_st_t *rn_st) {
+    memset(rn_st, 0, sizeof(rn_st_t));
     rnv->rn_pattern=(int *)m_alloc(rn_st->len_p=P_AVG_SIZE*LEN_P,sizeof(int));
     rnv->rn_nameclass=(int *)m_alloc(rn_st->len_nc=NC_AVG_SIZE*LEN_NC,sizeof(int));
     rnv->rn_string=(char*)m_alloc(rn_st->len_s=S_AVG_SIZE*LEN_S,sizeof(char));
@@ -311,7 +312,8 @@ static void windup(rnv_t *rnv, rn_st_t *rn_st) {
   rnv->rn_xsd_uri=rn_newString(rnv, rn_st, "http://www.w3.org/2001/XMLSchema-datatypes");
 }
 
-static int hash_p(rnv_t *rnv, int p) {
+static int hash_p(void *user, int p) {
+  rnv_t *rnv = (rnv_t *)user;
   int *pp=rnv->rn_pattern+p; int h=0;
   switch(p_size[RN_P_TYP(p)]) {
   case 1: h=pp[0]&0xF; break;
@@ -322,7 +324,8 @@ static int hash_p(rnv_t *rnv, int p) {
   return h*PRIME_P;
 }
 
-static int hash_nc(rnv_t *rnv, int nc) {
+static int hash_nc(void *user, int nc) {
+  rnv_t *rnv = (rnv_t *)user;
   int *ncp=rnv->rn_nameclass+nc; int h=0;
   switch(nc_size[RN_NC_TYP(nc)]) {
   case 1: h=ncp[0]&0x7; break;
@@ -333,9 +336,13 @@ static int hash_nc(rnv_t *rnv, int nc) {
   return h*PRIME_NC;
 }
 
-static int hash_s(rnv_t *rnv, int i) {return s_hval(rnv->rn_string+i);}
+static int hash_s(void *user, int i) {
+  rnv_t *rnv = (rnv_t *)user;
+  return s_hval(rnv->rn_string+i);
+}
 
-static int equal_p(rnv_t *rnv, int p1,int p2) {
+static int equal_p(void *user, int p1,int p2) {
+  rnv_t *rnv = (rnv_t *)user;
   int *pp1=rnv->rn_pattern+p1,*pp2=rnv->rn_pattern+p2;
   if(RN_P_TYP(p1)!=RN_P_TYP(p2)) return 0;
   switch(p_size[RN_P_TYP(p1)]) {
@@ -347,7 +354,8 @@ static int equal_p(rnv_t *rnv, int p1,int p2) {
   return 0;
 }
 
-static int equal_nc(rnv_t *rnv, int nc1,int nc2) {
+static int equal_nc(void *user, int nc1,int nc2) {
+  rnv_t *rnv = (rnv_t *)user;
   int *ncp1=rnv->rn_nameclass+nc1,*ncp2=rnv->rn_nameclass+nc2;
   if(RN_NC_TYP(nc1)!=RN_NC_TYP(nc2)) return 0;
   switch(nc_size[RN_NC_TYP(nc1)]) {
@@ -359,7 +367,10 @@ static int equal_nc(rnv_t *rnv, int nc1,int nc2) {
   return 0;
 }
 
-static int equal_s(rnv_t *rnv, int s1,int s2) {return strcmp(rnv->rn_string+s1,rnv->rn_string+s2)==0;}
+static int equal_s(void *user, int s1,int s2) {
+  rnv_t *rnv = (rnv_t *)user;
+  return strcmp(rnv->rn_string+s1,rnv->rn_string+s2)==0;
+}
 
 /* marks patterns reachable from start, assumes that the references are resolved */
 #define pick_p(p) do { \

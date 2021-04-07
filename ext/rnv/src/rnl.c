@@ -20,12 +20,12 @@ void rnl_default_verror_handler(rnv_t *rnv, int erno,va_list ap) {
 static void verror_handler_rnc(rnv_t *rnv, int erno,va_list ap) {rnl_default_verror_handler(rnv, erno|ERBIT_RNC,ap);}
 static void verror_handler_rnd(rnv_t *rnv, int erno,va_list ap) {rnl_default_verror_handler(rnv, erno|ERBIT_RND,ap);}
 
-void rnl_init(rnv_t *rnv, rn_st_t *rn_st, rnc_st_t *rnc_st) {
+void rnl_init(rnv_t *rnv, rn_st_t *rn_st, rnc_st_t *rnc_st, rnd_st_t *rnd_st) {
     rnv->rnl_verror_handler=&rnl_default_verror_handler;
     rn_init(rnv, rn_st);
     rnc_init(rnv, rnc_st, rn_st);
     rnv->rnc_verror_handler=&verror_handler_rnc;
-    rnd_init(rnv, rn_st); 
+    rnd_init(rnv, rnd_st, rn_st); 
     rnv->rnd_verror_handler=&verror_handler_rnd;
 }
 

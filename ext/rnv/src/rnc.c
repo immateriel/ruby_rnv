@@ -202,6 +202,7 @@ int rnc_errors(struct rnc_source *sp) {
 #define DE_ILEAVE 16
 
 void rnc_init(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st) {
+    memset(rnc_st, 0, sizeof(rnc_st_t));
     rnv->rnc_verror_handler=&rnc_default_verror_handler;
     rn_init(rnv, rn_st);
     rnc_st->len_p=LEN_P; rnc_st->path=(char*)m_alloc(rnc_st->len_p,sizeof(char));

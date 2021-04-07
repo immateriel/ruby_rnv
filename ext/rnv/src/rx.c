@@ -135,10 +135,17 @@ static int cls(rx_st_t *rx_st, int cn) {
   return newClass(rx_st, cn);
 }
 
-static int equal_r(rx_st_t *rx_st, int r1,int r2) {return strcmp(rx_st->regex+r1,rx_st->regex+r2)==0;}
-static int hash_r(rx_st_t *rx_st, int r) {return s_hval(rx_st->regex+r);}
+static int equal_r(void *user, int r1,int r2) {
+  rx_st_t *rx_st = (rx_st_t *)user;
+  return strcmp(rx_st->regex+r1,rx_st->regex+r2)==0;
+}
+static int hash_r(void *user, int r) {
+  rx_st_t *rx_st = (rx_st_t *)user;
+  return s_hval(rx_st->regex+r);
+}
 
-static int equal_p(rx_st_t *rx_st, int p1,int p2) {
+static int equal_p(void *user, int p1,int p2) {
+  rx_st_t *rx_st = (rx_st_t *)user;
   int *pp1=rx_st->pattern+p1,*pp2=rx_st->pattern+p2;
   if(P_TYP(p1)!=P_TYP(p2)) return 0;
   switch(p_size[P_TYP(p1)]) {
@@ -149,7 +156,8 @@ static int equal_p(rx_st_t *rx_st, int p1,int p2) {
   }
   return 0;
 }
-static int hash_p(rx_st_t *rx_st, int p) {
+static int hash_p(void *user, int p) {
+  rx_st_t *rx_st = (rx_st_t *)user;
   int *pp=rx_st->pattern+p; int h=0;
   switch(p_size[P_TYP(p)]) {
   case 1: h=pp[0]&0xF; break;
@@ -160,8 +168,14 @@ static int hash_p(rx_st_t *rx_st, int p) {
   return h*PRIME_P;
 }
 
-static int equal_2(rx_st_t *rx_st, int x1,int x2) {return rx_st->r2p[x1][0]==rx_st->r2p[x2][0];}
-static int hash_2(rx_st_t *rx_st, int x) {return rx_st->r2p[x][0]*PRIME_2;}
+static int equal_2(void *user, int x1,int x2) {
+  rx_st_t *rx_st = (rx_st_t *)user;
+  return rx_st->r2p[x1][0]==rx_st->r2p[x2][0];
+}
+static int hash_2(void *user, int x) {
+  rx_st_t *rx_st = (rx_st_t *)user;
+  return rx_st->r2p[x][0]*PRIME_2;
+}
 
 static int add_r(rx_st_t *rx_st, char *rx) {
   int len=strlen(rx)+1;
@@ -214,11 +228,13 @@ static int new_memo(rx_st_t *rx_st, int p,int c) {
   return ht_get(&rx_st->ht_m,rx_st->i_m);
 }
 
-static int equal_m(rx_st_t *rx_st,int m1,int m2) {
+static int equal_m(void *user,int m1,int m2) {
+  rx_st_t *rx_st = (rx_st_t *)user;
   int *me1=rx_st->memo[m1],*me2=rx_st->memo[m2];
   return (me1[0]==me2[0])&&(me1[1]==me2[1]);
 }
-static int hash_m(rx_st_t *rx_st,int m) {
+static int hash_m(void *user,int m) {
+  rx_st_t *rx_st = (rx_st_t *)user;
   int *me=rx_st->memo[m];
   return (me[0]^me[1])*PRIME_M;
 }
@@ -232,6 +248,8 @@ static void accept_m(rx_st_t *rx_st) {
 
 static void windup(rx_st_t *rx_st);
 void rx_init(rx_st_t *rx_st) {
+    // memset(rx_st, 0, sizeof(rx_st_t));
+
     rx_st->rnv->rx_verror_handler=&rx_default_verror_handler;
 
     rx_st->pattern=(int *)m_alloc(rx_st->len_p=P_AVG_SIZE*LEN_P,sizeof(int));

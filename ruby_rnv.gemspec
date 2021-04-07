@@ -1,7 +1,6 @@
-# somewhere in your Rakefile, define your gem spec
-spec = Gem::Specification.new do |s|
+Gem::Specification.new do |s|
   s.name    = "ruby_rnv"
-  s.version = "0.1.0"
+  s.version = "0.2.0"
   s.summary = "RelaxNG compact syntax validator"
   s.author  = "Julien Boulnois"
 

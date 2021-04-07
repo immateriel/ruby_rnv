@@ -8,7 +8,7 @@
 
 extern void rnl_default_verror_handler(rnv_t *rnv, int erno,va_list ap);
 
-extern void rnl_init(rnv_t *rnv, rn_st_t *rn_st, rnc_st_t *rnc_st);
+extern void rnl_init(rnv_t *rnv, rn_st_t *rn_st, rnc_st_t *rnc_st, rnd_st_t *rnd_st);
 extern void rnl_clear(void);
 
 extern int rnl_fn(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st, rnd_st_t *rnd_st, char *fn);

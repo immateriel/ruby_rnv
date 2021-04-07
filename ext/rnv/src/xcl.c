@@ -133,10 +133,10 @@ static void verror_handler_rnl(rnv_t *rnv, xcl_st_t *xcl_st, rnx_st_t *rnx_st, i
 static void verror_handler_rnv(rnv_t *rnv, xcl_st_t *xcl_st, rnx_st_t *rnx_st, int erno, va_list ap) { verror_handler(rnv, xcl_st, rnx_st, erno | ERBIT_RNV, ap); }
 
 static void windup(xcl_st_t *xcl_st);
-static void init(rnv_t *rnv, xcl_st_t *xcl_st, rn_st_t *rn_st, rnc_st_t *rnc_st, rnx_st_t *rnx_st, drv_st_t *drv_st, rx_st_t *rx_st)
+static void init(rnv_t *rnv, xcl_st_t *xcl_st, rn_st_t *rn_st, rnd_st_t *rnd_st, rnc_st_t *rnc_st, rnx_st_t *rnx_st, drv_st_t *drv_st, rx_st_t *rx_st)
 {
     rnv->verror_handler=&verror_default_handler;
-    rnl_init(rnv, rn_st, rnc_st);
+    rnl_init(rnv, rn_st, rnd_st, rnc_st);
     //rnl_verror_handler = &verror_handler_rnl;
     rnv_init(rnv, drv_st, rn_st, rx_st);
     //rnv_verror_handler = &verror_handler_rnv;
@@ -183,8 +183,6 @@ static void start_element(void *userData, const char *name, const char **attrs)
   drv_st_t *drv_st = xcl_st->drv_st;
   rn_st_t *rn_st = xcl_st->rn_st;
   rx_st_t *rx_st = xcl_st->rx_st;
-
-  printf("START ELEMENT %s\n",name);
 
   if (xcl_st->current != rnv->rn_notAllowed)
   {
@@ -356,7 +354,7 @@ int main(int argc, char **argv)
   xcl_st->rn_st = rn_st;
   xcl_st->rx_st = rx_st;
 
-  init(rnv, xcl_st, rn_st, rnc_st, rnx_st, drv_st, rx_st);
+  init(rnv, xcl_st, rn_st, rnc_st, rnd_st, rnx_st, drv_st, rx_st);
 
   xcl_st->peipe = 0;
   xcl_st->verbose = 1;
