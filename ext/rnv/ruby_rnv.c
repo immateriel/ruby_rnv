@@ -298,17 +298,16 @@ int ruby_verror_handler(rnv_t *rnv, int erno, char *format, va_list ap)
         if (rnv->rnx_n_exp > document->nexp)
           break;
 
-        expected = rb_str_cat2(expected, (char *)(req ? "required: " : "allowed: "));
+        expected = rb_str_cat2(expected, (char *)(req ? "required:\n" : "allowed:\n"));
 
         for (; i != rnv->rnx_n_exp; ++i)
         {
           s = rnx_p2str(rnv, rnv->rnx_exp[i]);
+          expected = rb_str_cat2(expected, "\t");
           expected = rb_str_cat2(expected, s);
-          if (i < rnv->rnx_n_exp - 1)
-            expected = rb_str_cat2(expected, ", ");
+          expected = rb_str_cat2(expected, "\n");
           m_free(s);
         }
-        expected = rb_str_cat2(expected, "; ");
       }
     }
   }
@@ -354,6 +353,7 @@ VALUE rb_error_inspect(VALUE self)
 VALUE rb_error_to_s(VALUE self)
 {
   VALUE message = rb_iv_get(self, "@message");
+  VALUE expected = rb_iv_get(self, "@expected");
   VALUE line = rb_iv_get(self, "@line");
   VALUE col = rb_iv_get(self, "@col");
 
@@ -366,6 +366,8 @@ VALUE rb_error_to_s(VALUE self)
   ret = rb_str_cat2(ret, ": error: ");
 
   ret = rb_str_append(ret, message);
+  ret = rb_str_cat2(ret, "\n");
+  ret = rb_str_append(ret, expected);
 
   return ret;
 }

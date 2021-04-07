@@ -1,5 +1,4 @@
 require 'nokogiri'
-require 'ox'
 require 'rnv/rnv'
 
 module RNV
