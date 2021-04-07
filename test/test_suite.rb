@@ -33,6 +33,18 @@ class TestSuite < Minitest::Test
     assert_equal 0, validator.errors.length
   end
 
+  def test_parse_multiple
+    validator = RNV::Validator.new
+    validator.load_schema_from_file("test/fixtures/test077.rnc")
+
+    validator.parse_file("test/fixtures/test077_1_valid.xml")
+    assert_equal 0, validator.errors.length
+    validator.parse_file("test/fixtures/test077_2_valid.xml")
+    assert_equal 0, validator.errors.length
+    validator.parse_file("test/fixtures/test077_3_invalid.xml")
+    assert validator.errors.length > 0
+  end
+
   private
 
   def process(rnc)

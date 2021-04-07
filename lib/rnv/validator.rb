@@ -71,6 +71,7 @@ module RNV
     # @return [Boolean] true if valid
     def parse_string(str)
       @document.errors = [] # reset errors
+      @document.start_document
       rnv_doc = NokogiriSaxDocument.new(@document)
 
       parser = Nokogiri::XML::SAX::Parser.new(rnv_doc)
@@ -86,6 +87,7 @@ module RNV
     # @return [Boolean] true if valid
     def parse_file(xml)
       @document.errors = [] # reset errors
+      @document.start_document
       rnv_doc = NokogiriSaxDocument.new(@document)
 
       file = xml.is_a?(File) ? xml : File.open(xml)

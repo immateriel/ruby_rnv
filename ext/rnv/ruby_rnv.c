@@ -416,6 +416,9 @@ void document_free(document_t *document)
     free(document->rnv->rnx_exp);
 
   free(document->rnv);
+
+  free(document->text);
+
   ruby_xfree(document);
 }
 
@@ -455,7 +458,7 @@ VALUE rb_document_init(VALUE self)
 
 static void document_load(document_t *document)
 {
-  document->ok = document->start = document->current = document->previous = document->opened;
+  document->ok = document->current = document->previous = document->start = document->opened;
   document->len_txt = LEN_T;
   document->text = (char *)m_alloc(document->len_txt, sizeof(char));
 
@@ -523,17 +526,6 @@ VALUE rb_document_load_file(VALUE self, VALUE r_fn)
 }
 
 /*
- * get errors from current document
- * @return [Array<RNV::Error>]
- */
-VALUE rb_document_errors(VALUE self)
-{
-  document_t *document;
-  Data_Get_Struct(self, document_t, document);
-  return rb_iv_get(self, "@errors");
-}
-
-/*
  * is current document valid ?
  * @return [Array<RNV::Error>]
  */
@@ -554,6 +546,27 @@ static void flush_text(document_t *document)
                           &document->current, &document->previous, document->text, document->n_txt, document->mixed) &&
                  document->ok;
   document->text[document->n_txt = 0] = '\0';
+}
+
+/*
+ * begin a new document
+ * @return [nil]
+ */
+VALUE rb_document_begin(VALUE self)
+{
+  document_t *document;
+  Data_Get_Struct(self, document_t, document);
+
+  m_free(document->text);
+  document->text = (char *)m_alloc(document->len_txt = LEN_T, sizeof(char));
+
+  document->ok = document->current = document->previous = document->start;
+
+  document->text[0] = '\0';
+  document->n_txt = 0;
+  document->mixed = 0;
+
+  return Qnil;
 }
 
 /*
@@ -703,9 +716,9 @@ void Init_rnv()
 
   rb_define_method(Document, "load_file", rb_document_load_file, 1);
   rb_define_method(Document, "load_string", rb_document_load_string, 1);
-  //rb_define_method(Document, "errors", rb_document_errors, 0);
   rb_define_method(Document, "valid?", rb_document_valid, 0);
 
+  rb_define_method(Document, "start_document", rb_document_begin, 0);
   rb_define_method(Document, "start_tag", rb_document_start_tag, 2);
   rb_define_method(Document, "characters", rb_document_characters, 1);
   rb_define_method(Document, "end_tag", rb_document_end_tag, 1);
