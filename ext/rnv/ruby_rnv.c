@@ -616,6 +616,7 @@ VALUE rb_document_start_tag(VALUE self, VALUE r_name, VALUE r_attrs)
 
   if (document->opened && document->current != document->rnv->rn_notAllowed)
   {
+    int i;
     char *name;
     char **attrs;
 
@@ -627,7 +628,7 @@ VALUE rb_document_start_tag(VALUE self, VALUE r_name, VALUE r_attrs)
 
     attrs = malloc(sizeof(char *) * (attrs_len + 1));
 
-    for (int i = 0; i < attrs_len; i++)
+    for (i = 0; i < attrs_len; i++)
     {
       attrs[i] = RSTRING_PTR(rb_ary_entry(r_attrs, i));
     }
