@@ -76,6 +76,7 @@ module RNV
 
       parser = Nokogiri::XML::SAX::Parser.new(rnv_doc)
       parser.parse_memory(str) do |ctx|
+        ctx.replace_entities = true
         rnv_doc.ctx = ctx
       end
 
@@ -94,6 +95,7 @@ module RNV
 
       parser = Nokogiri::XML::SAX::Parser.new(rnv_doc)
       parser.parse(file) do |ctx|
+        ctx.replace_entities = true
         rnv_doc.ctx = ctx
       end
 

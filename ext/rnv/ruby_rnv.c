@@ -489,10 +489,11 @@ VALUE rb_document_load_string(VALUE self, VALUE r_str)
                            document->fn,
                            RSTRING_PTR(r_str), RSTRING_LEN(r_str));
 
-  document_load(document);
-
   if (document->opened)
+  {
+    document_load(document);
     return Qtrue;
+  }
   else
     return Qfalse;
 }
@@ -507,27 +508,21 @@ VALUE rb_document_load_file(VALUE self, VALUE r_fn)
   document_t *document;
   Data_Get_Struct(self, document_t, document);
 
-  switch (TYPE(r_fn))
-  {
-  case T_STRING:
-    document->fn = RSTRING_PTR(r_fn);
+  Check_Type(r_fn, T_STRING);
 
-    document->opened = rnl_fn(document->rnv,
-                              document->rnc_st,
-                              document->rn_st,
-                              document->rnd_st,
-                              document->fn);
-    break;
-  case T_FILE: // TODO
-  default:
-    rb_raise(rb_eTypeError, "invalid argument");
-    break;
-  }
+  document->fn = RSTRING_PTR(r_fn);
 
-  document_load(document);
+  document->opened = rnl_fn(document->rnv,
+                            document->rnc_st,
+                            document->rn_st,
+                            document->rnd_st,
+                            document->fn);
 
   if (document->opened)
+  {
+    document_load(document);
     return Qtrue;
+  }
   else
     return Qfalse;
 }

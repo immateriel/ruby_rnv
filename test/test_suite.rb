@@ -45,6 +45,29 @@ class TestSuite < Minitest::Test
     assert validator.errors.length > 0
   end
 
+  def test_invalid_param
+    validator = RNV::Validator.new
+    assert_raises TypeError do
+      validator.load_schema_from_file(Pathname.new("test/fixtures/test077.rnc"))
+    end
+    assert_raises TypeError do
+      validator.load_schema_from_file(nil)
+    end
+    assert_raises TypeError do
+      validator.load_schema_from_string(nil)
+    end
+
+    assert !validator.load_schema_from_file("test/fixtures/unknown.rnc")
+
+    validator.load_schema_from_file("test/fixtures/test077.rnc")
+    assert_raises TypeError do
+      validator.parse_file(nil)
+    end
+    assert_raises ArgumentError do
+      validator.parse_string(nil)
+    end
+  end
+
   private
 
   def process(rnc)
