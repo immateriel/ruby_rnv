@@ -1,9 +1,10 @@
 spec = Gem::Specification.new do |s|
   s.name    = "ruby_rnv"
-  s.version = "0.2.2"
-  s.summary = "RelaxNG compact syntax validator"
+  s.version = "0.2.3"
+  s.summary = "RelaxNG compact syntax validator for Ruby"
   s.author  = "Julien Boulnois"
   s.license = "MIT"
+  s.homepage = "https://github.com/immateriel/ruby_rnv"
 
   s.extensions = "ext/rnv/extconf.rb"
   s.required_ruby_version = ">= 2.4"

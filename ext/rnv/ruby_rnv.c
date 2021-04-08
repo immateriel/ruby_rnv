@@ -470,7 +470,7 @@ static void document_load(document_t *document)
 /*
  * load schema from a buffer
  * @param [String] r_str buffer
- * @return [String]
+ * @return [Boolean]
  */
 VALUE rb_document_load_string(VALUE self, VALUE r_str)
 {
@@ -490,13 +490,17 @@ VALUE rb_document_load_string(VALUE self, VALUE r_str)
                            RSTRING_PTR(r_str), RSTRING_LEN(r_str));
 
   document_load(document);
-  return INT2NUM(document->ok);
+
+  if (document->opened)
+    return Qtrue;
+  else
+    return Qfalse;
 }
 
 /*
  * load schema from a file
  * @param [String] r_fn filename
- * @return [String]
+ * @return [Boolean]
  */
 VALUE rb_document_load_file(VALUE self, VALUE r_fn)
 {
@@ -513,7 +517,6 @@ VALUE rb_document_load_file(VALUE self, VALUE r_fn)
                               document->rn_st,
                               document->rnd_st,
                               document->fn);
-
     break;
   case T_FILE: // TODO
   default:
@@ -522,7 +525,11 @@ VALUE rb_document_load_file(VALUE self, VALUE r_fn)
   }
 
   document_load(document);
-  return INT2NUM(document->ok);
+
+  if (document->opened)
+    return Qtrue;
+  else
+    return Qfalse;
 }
 
 /*
