@@ -1,0 +1,1 @@
+element foo { "Line1\x{A}Line2" }

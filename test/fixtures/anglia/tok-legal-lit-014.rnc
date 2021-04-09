@@ -1,0 +1,2 @@
+element foo { '''Literal1
+  Literal2''' }

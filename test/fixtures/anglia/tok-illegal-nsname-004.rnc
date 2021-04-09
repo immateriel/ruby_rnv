@@ -1,0 +1,2 @@
+namespace foo = "http://www.example.com/"
+element foo:bar* { empty }

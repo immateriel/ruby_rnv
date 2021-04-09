@@ -1,0 +1,3 @@
+foo:bar [ "bar" ]
+start = foo
+foo = element foo { empty }

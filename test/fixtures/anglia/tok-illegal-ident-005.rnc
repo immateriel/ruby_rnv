@@ -1,0 +1,2 @@
+start = element
+element = element foo { empty }
