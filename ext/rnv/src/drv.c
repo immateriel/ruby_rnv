@@ -13,12 +13,6 @@
 #include "er.h"
 #include "drv.h"
 
-struct dtl {
-  int uri;
-  int (*equal)(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, char *typ,char *val,char *s,int n);
-  int (*allows)(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, char *typ,char *ps,char *s,int n);
-};
-
 #define LEN_DTL DRV_LEN_DTL
 #define LEN_M DRV_LEN_M
 #define PRIME_M DRV_PRIME_M
@@ -112,10 +106,10 @@ static void accept_m(rnv_t *rnv, drv_st_t *drv_st) {
   if(drv_st->i_m==drv_st->len_m) drv_st->memo=(int(*)[M_SIZE])m_stretch(drv_st->memo,drv_st->len_m=2*drv_st->i_m,drv_st->i_m,sizeof(int[M_SIZE]));
 }
 
-static int fallback_equal(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, char *typ,char *val,char *s,int n) {return 1;}
-static int fallback_allows(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, char *typ,char *ps,char *s,int n) {return 1;}
+static int fallback_equal(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ,char *val,char *s,int n) {return 1;}
+static int fallback_allows(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ,char *ps,char *s,int n) {return 1;}
 
-static int builtin_equal(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, char *typ,char *val,char *s,int n) {
+static int builtin_equal(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ,char *val,char *s,int n) {
   int dt=rn_newDatatype(rnv, rn_st, 0,typ-rnv->rn_string);
   if(dt==rnv->rn_dt_string) return s_cmpn(val,s,n)==0;
   else if(dt==rnv->rn_dt_token) return s_tokcmpn(val,s,n)==0;
@@ -123,7 +117,7 @@ static int builtin_equal(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, char *typ,c
   return 0;
 }
 
-static int builtin_allows(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, char *typ,char *ps,char *s,int n) {return 1;}
+static int builtin_allows(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ,char *ps,char *s,int n) {return 1;}
 
 static void windup(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st);
 
@@ -140,11 +134,11 @@ void drv_init(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, rx_st_t *rx_st) {
     windup(rnv, drv_st, rn_st);
 }
 
-static int emb_xsd_allows(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, char *typ,char *ps,char *s,int n) {
+static int emb_xsd_allows(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ,char *ps,char *s,int n) {
   return xsd_allows(rx_st, typ,ps,s,n);
 }
 
-static int emb_xsd_equal(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, char *typ,char *val,char *s,int n) {
+static int emb_xsd_equal(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ,char *val,char *s,int n) {
   return xsd_equal(rx_st, typ,val,s,n);
 }
 
@@ -160,7 +154,9 @@ void drv_clear(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st) {
   windup(rnv, drv_st, rn_st);
 }
 
-void drv_add_dtl(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, char *suri,int (*equal)(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, char *typ,char *val,char *s,int n),int (*allows)(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, char *typ,char *ps,char *s,int n)) {
+void drv_add_dtl(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, char *suri,
+    int (*equal)(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ,char *val,char *s,int n),
+    int (*allows)(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ,char *ps,char *s,int n)) {
   if(drv_st->n_dtl==drv_st->len_dtl) drv_st->dtl=(struct dtl *)m_stretch(drv_st->dtl,drv_st->len_dtl=drv_st->n_dtl*2,drv_st->n_dtl,sizeof(struct dtl));
   drv_st->dtl[drv_st->n_dtl].uri=rn_newString(rnv, rn_st, suri);
   drv_st->dtl[drv_st->n_dtl].equal=equal;
@@ -381,13 +377,13 @@ static int text(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, drv_st_t *drv_st, in
     ret=rn_nullable(list(rnv, rn_st, rx_st, drv_st, p1,s,n))?rnv->rn_empty:rnv->rn_notAllowed;
     break;
   case RN_P_DATA: rn_Data(p,dt,ps); rn_Datatype(dt,lib,typ);
-    ret=getdtl(rnv, drv_st, lib)->allows(rnv,rn_st,rx_st,rnv->rn_string+typ,rnv->rn_string+ps,s,n)?rnv->rn_empty:rnv->rn_notAllowed;
+    ret=getdtl(rnv, drv_st, lib)->allows(rnv,rn_st,rx_st, lib, rnv->rn_string+typ,rnv->rn_string+ps,s,n)?rnv->rn_empty:rnv->rn_notAllowed;
     break;
   case RN_P_DATA_EXCEPT: rn_DataExcept(p,p1,p2);
     ret=text(rnv, rn_st, rx_st, drv_st, p1,s,n)==rnv->rn_empty&&!rn_nullable(text(rnv, rn_st, rx_st, drv_st, p2,s,n))?rnv->rn_empty:rnv->rn_notAllowed;
     break;
   case RN_P_VALUE: rn_Value(p,dt,val); rn_Datatype(dt,lib,typ);
-    ret=getdtl(rnv, drv_st, lib)->equal(rnv,rn_st,rx_st, rnv->rn_string+typ,rnv->rn_string+val,s,n)?rnv->rn_empty:rnv->rn_notAllowed;
+    ret=getdtl(rnv, drv_st, lib)->equal(rnv,rn_st,rx_st, lib, rnv->rn_string+typ,rnv->rn_string+val,s,n)?rnv->rn_empty:rnv->rn_notAllowed;
     break;
   default: assert(0);
   }

@@ -56,7 +56,7 @@ typedef struct document
 
 } document_t;
 
-VALUE RNV;
+VALUE RNV, SchemaNotLoaded, Error, Document;
 
 // convert error code to symbol
 ID errno_to_id(int erno)
@@ -275,7 +275,7 @@ int ruby_verror_handler(rnv_t *rnv, int erno, char *format, va_list ap)
   // lazyly strip with ruby
   rb_funcall(error_str, rb_intern("strip!"), 0);
 
-  VALUE err_class = rb_const_get(RNV, rb_intern("Error"));
+  VALUE err_class = Error;
   VALUE err_obj = rb_class_new_instance(0, NULL, err_class);
   rb_iv_set(err_obj, "@document", self);
   rb_iv_set(err_obj, "@code", error_erno);
@@ -315,61 +315,6 @@ int ruby_verror_handler(rnv_t *rnv, int erno, char *format, va_list ap)
   rb_iv_set(err_obj, "@expected", expected);
 
   rb_ary_push(errors, err_obj);
-}
-
-/*
- * @return [String]
- */
-VALUE rb_error_inspect(VALUE self)
-{
-  VALUE code = rb_iv_get(self, "@code");
-  VALUE message = rb_iv_get(self, "@message");
-  VALUE expected = rb_iv_get(self, "@expected");
-  VALUE line = rb_iv_get(self, "@line");
-  VALUE col = rb_iv_get(self, "@col");
-
-  VALUE ret = rb_str_new2("#<RNV::Error ");
-  ret = rb_str_cat2(ret, "code: :");
-  ret = rb_str_append(ret, rb_obj_as_string(code));
-  ret = rb_str_cat2(ret, ", ");
-  ret = rb_str_cat2(ret, "message: '");
-  ret = rb_str_append(ret, message);
-  ret = rb_str_cat2(ret, "', ");
-  ret = rb_str_cat2(ret, "expected: '");
-  ret = rb_str_append(ret, expected);
-  ret = rb_str_cat2(ret, "', ");
-  ret = rb_str_cat2(ret, "line: ");
-  ret = rb_str_append(ret, rb_obj_as_string(line));
-  ret = rb_str_cat2(ret, ", ");
-  ret = rb_str_cat2(ret, "col: ");
-  ret = rb_str_append(ret, rb_obj_as_string(col));
-  ret = rb_str_cat2(ret, ">");
-  return ret;
-}
-
-/*
- * @return [String]
- */
-VALUE rb_error_to_s(VALUE self)
-{
-  VALUE message = rb_iv_get(self, "@message");
-  VALUE expected = rb_iv_get(self, "@expected");
-  VALUE line = rb_iv_get(self, "@line");
-  VALUE col = rb_iv_get(self, "@col");
-
-  VALUE ret = rb_str_new2("");
-
-  ret = rb_str_append(ret, rb_obj_as_string(line));
-  ret = rb_str_cat2(ret, ":");
-  ret = rb_str_append(ret, rb_obj_as_string(col));
-
-  ret = rb_str_cat2(ret, ": error: ");
-
-  ret = rb_str_append(ret, message);
-  ret = rb_str_cat2(ret, "\n");
-  ret = rb_str_append(ret, expected);
-
-  return ret;
 }
 
 void document_free(document_t *document)
@@ -417,7 +362,8 @@ void document_free(document_t *document)
 
   free(document->rnv);
 
-  free(document->text);
+  if (document->text)
+    free(document->text);
 
   ruby_xfree(document);
 }
@@ -450,8 +396,11 @@ VALUE rb_document_init(VALUE self)
   document->rnv->user_data = (void *)self;
   document->rnv->verror_handler = &ruby_verror_handler;
   document->nexp = 16; /* maximum number of candidates to display */
+  document->text = NULL;
 
   rb_iv_set(self, "@errors", rb_ary_new2(0));
+
+  rb_iv_set(self, "@libraries", rb_hash_new());
 
   return self;
 }
@@ -550,14 +499,73 @@ static void flush_text(document_t *document)
   document->text[document->n_txt = 0] = '\0';
 }
 
+static int rb_dtl_equal(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ, char *val, char *s, int n)
+{
+  VALUE self = (VALUE)rnv->user_data;
+  VALUE libraries = rb_iv_get(self, "@libraries");
+  VALUE lib = rb_hash_aref(libraries, INT2FIX(uri));
+
+  VALUE ret = rb_funcall(lib, rb_intern("equal"), 4,
+                         rb_str_new2(typ), rb_str_new2(val), rb_str_new2(s), INT2FIX(n));
+
+  return RTEST(ret);
+}
+
+static int rb_dtl_allows(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ, char *ps, char *s, int n)
+{
+  VALUE self = (VALUE)rnv->user_data;
+  VALUE libraries = rb_iv_get(self, "@libraries");
+  VALUE lib = rb_hash_aref(libraries, INT2FIX(uri));
+
+  VALUE ret = rb_funcall(lib, rb_intern("allows"), 4,
+                         rb_str_new2(typ), rb_str_new2(ps), rb_str_new2(s), INT2FIX(n));
+
+  return RTEST(ret);
+}
+
 /*
- * begin a new document
+ * add a new datatype library
+ * @see https://www.oasis-open.org/committees/relax-ng/spec-20010811.html#IDA1I1R
+ * @param [String] r_ns unique ns URL for this datatype
+ * @param [RNV::DataTypeLibrary] r_cb_obj
+ * @return [nil]
+ */
+VALUE rb_document_add_dtl(VALUE self, VALUE r_ns, VALUE r_cb_obj)
+{
+  document_t *document;
+  Data_Get_Struct(self, document_t, document);
+
+  if (document->opened)
+  {
+    Check_Type(r_ns, T_STRING);
+
+    char *suri = RSTRING_PTR(r_ns);
+
+    drv_add_dtl(document->rnv, document->drv_st, document->rn_st, suri, &rb_dtl_equal, &rb_dtl_allows);
+
+    int uri = document->drv_st->dtl[document->drv_st->n_dtl - 1].uri;
+
+    VALUE libraries = rb_iv_get(self, "@libraries");
+
+    rb_hash_aset(libraries, INT2FIX(uri), r_cb_obj);
+  }
+  return Qnil;
+}
+
+/*
+ * begin parsing a new document
  * @return [nil]
  */
 VALUE rb_document_begin(VALUE self)
 {
   document_t *document;
   Data_Get_Struct(self, document_t, document);
+
+  if (!document->opened)
+    rb_raise(SchemaNotLoaded, "schema was not loaded correctly");
+
+  // reset errors
+  rb_iv_set(self, "@errors", rb_ary_new2(0));
 
   m_free(document->text);
   document->text = (char *)m_alloc(document->len_txt = LEN_T, sizeof(char));
@@ -574,14 +582,17 @@ VALUE rb_document_begin(VALUE self)
 /*
  * to be called by SAX characters handler
  * @param [String] r_str characters
- * @return [Integer]
+ * @return [Boolean]
  */
 VALUE rb_document_characters(VALUE self, VALUE r_str)
 {
   document_t *document;
   Data_Get_Struct(self, document_t, document);
 
-  if (document->opened && document->current != document->rnv->rn_notAllowed)
+  if (!document->opened)
+    rb_raise(SchemaNotLoaded, "schema was not loaded correctly");
+
+  if (document->current != document->rnv->rn_notAllowed)
   {
     Check_Type(r_str, T_STRING);
     char *s = RSTRING_PTR(r_str);
@@ -602,21 +613,24 @@ VALUE rb_document_characters(VALUE self, VALUE r_str)
     document->text[document->n_txt] = '\0'; /* '\0' guarantees that the text is bounded, and strto[ld] work for data */
   }
 
-  return INT2NUM(document->ok);
+  return RTEST(document->ok);
 }
 
 /*
  * to be called by SAX start tag handler
  * @param [String] r_name tag name, must be in the form 'NS_URI:TAG_NAME'
- * @param [Array<String>] r_attrs flattened array of tag attributes in the form ['NS_URI:ATTR_NAME','ATTR_VALUE']
- * @return [Integer]
+ * @param [Array<Array<String>>] r_attrs flattened array of tag attributes in the form [['NS_URI:ATTR_NAME','ATTR_VALUE']]
+ * @return [Boolean]
  */
 VALUE rb_document_start_tag(VALUE self, VALUE r_name, VALUE r_attrs)
 {
   document_t *document;
   Data_Get_Struct(self, document_t, document);
 
-  if (document->opened && document->current != document->rnv->rn_notAllowed)
+  if (!document->opened)
+    rb_raise(SchemaNotLoaded, "schema was not loaded correctly");
+
+  if (document->current != document->rnv->rn_notAllowed)
   {
     int i;
     char *name;
@@ -626,20 +640,22 @@ VALUE rb_document_start_tag(VALUE self, VALUE r_name, VALUE r_attrs)
     name = RSTRING_PTR(r_name);
 
     Check_Type(r_attrs, T_ARRAY);
-    unsigned int attrs_len = RARRAY_LEN(r_attrs);
+
+    // lazyly flatten with ruby
+    VALUE r_flat_attrs = rb_funcall(r_attrs, rb_intern("flatten"), 0);
+    unsigned int attrs_len = RARRAY_LEN(r_flat_attrs);
 
     attrs = malloc(sizeof(char *) * (attrs_len + 1));
 
     for (i = 0; i < attrs_len; i++)
     {
-      attrs[i] = RSTRING_PTR(rb_ary_entry(r_attrs, i));
+      attrs[i] = RSTRING_PTR(rb_ary_entry(r_flat_attrs, i));
     }
     attrs[attrs_len] = 0; // zero terminated
 
     document->mixed = 1;
 
     flush_text(document);
-    //printf("RNV START %d/%d %s %d\n", current, previous, name, attrs_len);
     document->ok = rnv_start_tag(document->rnv, document->drv_st, document->rn_st, document->rx_st,
                                  &document->current, &document->previous, (char *)name, (char **)attrs) &&
                    document->ok;
@@ -648,20 +664,23 @@ VALUE rb_document_start_tag(VALUE self, VALUE r_name, VALUE r_attrs)
     free(attrs);
   }
 
-  return INT2NUM(document->ok);
+  return RTEST(document->ok);
 }
 
 /*
  * to be called by SAX end tag handler
  * @param [String] r_name tag name, must be in the form 'NS_URI:TAG_NAME'
- * @return [Integer]
+ * @return [Boolean]
  */
 VALUE rb_document_end_tag(VALUE self, VALUE r_name)
 {
   document_t *document;
   Data_Get_Struct(self, document_t, document);
 
-  if (document->opened && document->current != document->rnv->rn_notAllowed)
+  if (!document->opened)
+    rb_raise(SchemaNotLoaded, "schema was not loaded correctly");
+
+  if (document->current != document->rnv->rn_notAllowed)
   {
     char *name;
 
@@ -670,7 +689,6 @@ VALUE rb_document_end_tag(VALUE self, VALUE r_name)
 
     flush_text(document);
 
-    //printf("RNV END %d/%d %s\n", current, previous, name);
     document->ok = rnv_end_tag(document->rnv, document->drv_st, document->rn_st,
                                &document->current, &document->previous, (char *)name) &&
                    document->ok;
@@ -678,7 +696,7 @@ VALUE rb_document_end_tag(VALUE self, VALUE r_name)
     document->mixed = 1;
   }
 
-  return INT2NUM(document->ok);
+  return RTEST(document->ok);
 }
 
 // The initialization method for this module
@@ -686,21 +704,15 @@ void Init_rnv()
 {
   RNV = rb_define_module("RNV");
 
-  VALUE Error = rb_define_class_under(RNV, "Error", rb_cObject);
+  SchemaNotLoaded = rb_define_class_under(RNV, "SchemaNotLoaded", rb_eStandardError);
 
-  rb_define_method(Error, "inspect", rb_error_inspect, 0);
-  rb_define_method(Error, "to_s", rb_error_to_s, 0);
+  Error = rb_define_class_under(RNV, "Error", rb_cObject);
 
   /*
    * error symbol code
    * @return [Symbol]
    */
   rb_define_attr(Error, "code", 1, 0);
-  /*
-   * error message
-   * @return [String]
-   */
-  rb_define_attr(Error, "message", 1, 0);
   /*
    * error line
    * @return [Integer]
@@ -711,8 +723,18 @@ void Init_rnv()
    * @return [Integer]
    */
   rb_define_attr(Error, "col", 1, 0);
+  /*
+   * error message
+   * @return [String]
+   */
+  rb_define_attr(Error, "message", 1, 0);
+  /*
+   * what was expected
+   * @return [String]
+   */
+  rb_define_attr(Error, "expected", 1, 0);
 
-  VALUE Document = rb_define_class_under(RNV, "Document", rb_cObject);
+  Document = rb_define_class_under(RNV, "Document", rb_cObject);
 
   rb_define_alloc_func(Document, rb_document_alloc);
   rb_define_method(Document, "initialize", rb_document_init, 0);
@@ -720,6 +742,8 @@ void Init_rnv()
   rb_define_method(Document, "load_file", rb_document_load_file, 1);
   rb_define_method(Document, "load_string", rb_document_load_string, 1);
   rb_define_method(Document, "valid?", rb_document_valid, 0);
+
+  rb_define_method(Document, "add_datatype_library", rb_document_add_dtl, 2);
 
   rb_define_method(Document, "start_document", rb_document_begin, 0);
   rb_define_method(Document, "start_tag", rb_document_start_tag, 2);

@@ -9,13 +9,21 @@
 
 #define DRV_ER_NODTL 0
 
+struct dtl {
+  int uri;
+  int (*equal)(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ,char *val,char *s,int n);
+  int (*allows)(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ,char *ps,char *s,int n);
+};
+
 extern void drv_default_verror_handler(rnv_t *rnv, int erno,va_list ap);
 
 extern void drv_init(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, rx_st_t *rx_st);
 extern void drv_clear(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st);
 
 /* Expat passes character data unterminated.  Hence functions that can deal with cdata expect the length of the data */
-extern void drv_add_dtl(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, char *suri,int (*equal)(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, char *typ,char *val,char *s,int n),int (*allows)(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, char *typ,char *ps,char *s,int n));
+extern void drv_add_dtl(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, char *suri,
+int (*equal)(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ,char *val,char *s,int n),
+int (*allows)(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ,char *ps,char *s,int n));
 
 extern int drv_start_tag_open(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, int p,char *suri,char *sname);
 extern int drv_start_tag_open_recover(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, int p,char *suri,char *sname);
