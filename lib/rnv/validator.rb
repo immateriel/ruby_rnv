@@ -32,7 +32,7 @@ module RNV
 
     def cdata_block str
       update_line_col
-      @document.characters(@pre_processor.(str))
+      @document.characters(@pre_processor.text(str))
     end
 
     private
