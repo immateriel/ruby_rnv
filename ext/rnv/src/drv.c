@@ -123,7 +123,7 @@ static void windup(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st);
 
 void drv_init(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, rx_st_t *rx_st) {
     rnv->drv_verror_handler=&drv_default_verror_handler;
-    rn_init(rnv, rn_st);
+    //rn_init(rnv, rn_st);
     rx_st->rnv = rnv;
     xsd_init(rx_st);
     rnv->xsd_verror_handler=&verror_handler_xsd;
@@ -132,6 +132,15 @@ void drv_init(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, rx_st_t *rx_st) {
     drv_st->ht_m.user = drv_st;
     ht_init(&drv_st->ht_m,LEN_M,&hash_m,&equal_m);
     windup(rnv, drv_st, rn_st);
+}
+
+void drv_dispose(drv_st_t *drv_st) {
+  if (drv_st->memo)
+    m_free(drv_st->memo);
+  if (drv_st->dtl)
+    m_free(drv_st->dtl);
+  ht_dispose(&drv_st->ht_m);
+  m_free(drv_st);
 }
 
 static int emb_xsd_allows(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ,char *ps,char *s,int n) {

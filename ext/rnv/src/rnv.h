@@ -19,6 +19,7 @@ extern void rnv_default_verror_handler(rnv_t *rnv, int erno,va_list ap);
 
 extern void rnv_init(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, rx_st_t *rx_st);
 extern void rnv_clear(void);
+extern void rnv_dispose(rnv_t *rnv);
 
 extern int rnv_text(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, rx_st_t *rx_st, int *curp,int *prevp,char *text,int n_t,int mixed);
 extern int rnv_start_tag(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, rx_st_t *rx_st, int *curp,int *prevp,char *name,char **attrs);

@@ -52,6 +52,7 @@ class TestSuite < Minitest::Test
       end
       assert_equal 0, v.errors.length
     else
+      dump_errors(rnc, v.errors)
       assert v.errors.length > 0
     end
   end
@@ -89,10 +90,8 @@ class TestSuite < Minitest::Test
       v = RNV::Validator.new
       v.load_schema_from_file(rnc)
       v.parse_file(xml)
-      #puts "#{rnc} -> #{xml} #{v.errors}"
-      #v.errors.each do |e|
-      #puts e
-      #end
+
+      dump_errors(rnc, v.errors)
       if v.errors.length == 0
         puts "FAIL should be invalid #{rnc} -> #{xml}"
       end
@@ -104,4 +103,13 @@ class TestSuite < Minitest::Test
       end
     end
   end
+
+  def dump_errors(rnc, errors)
+    if false
+      errors.each do |e|
+        puts "#{rnc} #{e.code} #{e.to_s}"
+      end
+    end
+  end
+
 end

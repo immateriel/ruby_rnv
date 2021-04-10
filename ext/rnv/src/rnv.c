@@ -48,6 +48,19 @@ void rnv_clear(void) {
   windup();
 }
 
+void rnv_dispose(rnv_t *rnv) {
+  if (rnv->rn_pattern)
+    m_free(rnv->rn_pattern);
+  if (rnv->rn_nameclass)
+    m_free(rnv->rn_nameclass);
+  if (rnv->rn_string)
+    m_free(rnv->rn_string);
+  if (rnv->rnx_exp)
+    m_free(rnv->rnx_exp);
+
+  m_free(rnv);
+}
+
 static void windup(void) {
 }
 

@@ -1,4 +1,5 @@
 require 'rnv'
+require 'pathname'
 require 'minitest/autorun'
 
 class TestRnv < Minitest::Test
@@ -66,12 +67,12 @@ class TestRnv < Minitest::Test
   end
 
   class TestDTL < RNV::DataTypeLibrary
-    def equal(typ, val, s, n)
+    def equal(typ, val, s)
       #puts "equal #{typ} #{val} #{s} #{n}"
       ["x","y","z"].include?(val)
     end
 
-    def allows(typ, ps, s, n)
+    def allows(typ, ps, s)
       #puts "allows #{typ} #{ps} #{s} #{n}"
       s=="xx"
     end
@@ -96,7 +97,7 @@ class TestRnv < Minitest::Test
 
   # test library that check if link is local or external
   class TestUriDTL < RNV::DataTypeLibrary
-    def allows(typ, ps, s, n)
+    def allows(typ, ps, s)
       #puts "allows #{typ} #{ps} #{s} #{n}"
       begin
         uri = URI.parse(s)

@@ -270,6 +270,22 @@ void rx_init(rx_st_t *rx_st) {
     windup(rx_st);
 }
 
+void rx_dispose(rx_st_t *rx_st) {
+  ht_dispose(&rx_st->ht_r);
+  ht_dispose(&rx_st->ht_p);
+  ht_dispose(&rx_st->ht_2);
+  ht_dispose(&rx_st->ht_m);
+  if (rx_st->regex)
+    m_free(rx_st->regex);
+  if (rx_st->pattern)
+    m_free(rx_st->pattern);
+  if (rx_st->memo)
+    m_free(rx_st->memo);
+  if (rx_st->r2p)
+    m_free(rx_st->r2p);
+  m_free(rx_st);
+}
+
 void rx_clear(rx_st_t *rx_st) {
   ht_clear(&rx_st->ht_p); ht_clear(&rx_st->ht_2); ht_clear(&rx_st->ht_r); ht_clear(&rx_st->ht_m);
   windup(rx_st);

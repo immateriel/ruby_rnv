@@ -1,5 +1,6 @@
 /* $Id: sc.c,v 1.16 2004/03/13 13:28:02 dvd Exp $ */
 
+#include <stdlib.h> /*NULL*/
 #include <assert.h> /*assert*/
 #include "m.h"
 #include "ll.h"
@@ -18,6 +19,10 @@ static void windup(struct sc_stack *stp) {
 void sc_init(struct sc_stack *stp) {
   stp->tab=(int(*)[SC_RECSIZE])m_alloc(stp->len=LEN,sizeof(int[SC_RECSIZE]));
   windup(stp);
+}
+
+void sc_dispose(struct sc_stack *stp) {
+  m_free(stp->tab); stp->tab = NULL;
 }
 
 void sc_clear(struct sc_stack *stp) {

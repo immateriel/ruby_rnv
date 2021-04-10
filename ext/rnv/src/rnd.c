@@ -33,7 +33,13 @@ void rnd_default_verror_handler(rnv_t *rnv, int erno,va_list ap) {
 void rnd_init(rnv_t *rnv, rnd_st_t *rnd_st, rn_st_t *rn_st) {
     memset(rnd_st, 0, sizeof(rnd_st_t));
     rnv->rnd_verror_handler=&rnd_default_verror_handler;
-    rn_init(rnv, rn_st);
+    //rn_init(rnv, rn_st);
+}
+
+void rnd_dispose(rnd_st_t *rnd_st) {
+  if (rnd_st->flat)
+    m_free(rnd_st->flat);
+  m_free(rnd_st);
 }
 
 void rnd_clear(void) {}

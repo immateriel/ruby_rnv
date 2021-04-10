@@ -1,349 +1,37 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <fcntl.h> /*open,close*/
-#include <sys/types.h>
-#include <unistd.h> /*open,read,close*/
-#include <string.h> /*strerror*/
-#include <errno.h>
-#include <assert.h>
-
-#include "src/m.h"
-#include "src/s.h"
-#include "src/erbit.h"
-#include "src/drv.h"
-#include "src/rnl.h"
-#include "src/rnv.h"
-#include "src/rnx.h"
-#include "src/ll.h"
-#include "src/er.h"
-#include "src/erbit.h"
-#include "src/rnc.h"
-#include "src/rnd.h"
-#include "src/rx.h"
-#include "src/xsd.h"
-
-#include <ruby.h>
-#include <ruby/io.h>
+#include "ruby_rnv.h"
 
 #define LEN_T XCL_LEN_T
 #define LIM_T XCL_LIM_T
 
-typedef struct document
+VALUE RNV, SchemaNotLoaded, Error, DataTypeLibrary, Document;
+
+extern int ruby_verror_handler(rnv_t *rnv, int erno, char *format, va_list ap);
+
+VALUE rb_datatype_push_error(VALUE self, VALUE r_msg)
 {
-  char *fn;
-  int start;
-  int current;
-  int previous;
-  int lastline;
-  int lastcol;
-  int level;
-  int opened;
-  int ok;
-  char *text;
-  int len_txt;
-  int n_txt;
-  int mixed;
-  int nexp;
-
-  rnv_t *rnv;
-  rn_st_t *rn_st;
-  rnc_st_t *rnc_st;
-  rnx_st_t *rnx_st;
-  drv_st_t *drv_st;
-  rx_st_t *rx_st;
-  rnd_st_t *rnd_st;
-
-} document_t;
-
-VALUE RNV, SchemaNotLoaded, Error, Document;
-
-// convert error code to symbol
-ID errno_to_id(int erno)
-{
-  ID id;
-  switch (erno)
-  {
-  case (ERBIT_RNC | RNC_ER_IO):
-    id = rb_intern("rnc_er_io");
-    break;
-  case (ERBIT_RNC | RNC_ER_UTF):
-    id = rb_intern("rnc_er_urf");
-    break;
-  case (ERBIT_RNC | RNC_ER_XESC):
-    id = rb_intern("rnc_er_xesc");
-    break;
-  case (ERBIT_RNC | RNC_ER_LEXP):
-    id = rb_intern("rnc_er_lexp");
-    break;
-  case (ERBIT_RNC | RNC_ER_LLIT):
-    id = rb_intern("rnc_er_llit");
-    break;
-  case (ERBIT_RNC | RNC_ER_LILL):
-    id = rb_intern("rnc_er_lill");
-    break;
-  case (ERBIT_RNC | RNC_ER_SEXP):
-    id = rb_intern("rnc_er_sexp");
-    break;
-  case (ERBIT_RNC | RNC_ER_SILL):
-    id = rb_intern("rnc_er_still");
-    break;
-  case (ERBIT_RNC | RNC_ER_NOTGR):
-    id = rb_intern("rnc_er_notgr");
-    break;
-  case (ERBIT_RNC | RNC_ER_EXT):
-    id = rb_intern("rnc_er_ext");
-    break;
-  case (ERBIT_RNC | RNC_ER_DUPNS):
-    id = rb_intern("rnc_er_dupns");
-    break;
-  case (ERBIT_RNC | RNC_ER_DUPDT):
-    id = rb_intern("rnc_er_dupdt");
-    break;
-  case (ERBIT_RNC | RNC_ER_DFLTNS):
-    id = rb_intern("rnc_er_dfltns");
-    break;
-  case (ERBIT_RNC | RNC_ER_DFLTDT):
-    id = rb_intern("rnc_er_dfltdt");
-    break;
-  case (ERBIT_RNC | RNC_ER_NONS):
-    id = rb_intern("rnc_er_nons");
-    break;
-  case (ERBIT_RNC | RNC_ER_NODT):
-    id = rb_intern("rnc_er_nodt");
-    break;
-  case (ERBIT_RNC | RNC_ER_NCEX):
-    id = rb_intern("rnc_er_ncex");
-    break;
-  case (ERBIT_RNC | RNC_ER_2HEADS):
-    id = rb_intern("rnc_er_2heads");
-    break;
-  case (ERBIT_RNC | RNC_ER_COMBINE):
-    id = rb_intern("rnc_er_combine");
-    break;
-  case (ERBIT_RNC | RNC_ER_OVRIDE):
-    id = rb_intern("rnc_er_ovride");
-    break;
-  case (ERBIT_RNC | RNC_ER_EXPT):
-    id = rb_intern("rnc_er_excpt");
-    break;
-  case (ERBIT_RNC | RNC_ER_INCONT):
-    id = rb_intern("rnc_er_incont");
-    break;
-  case (ERBIT_RNC | RNC_ER_NOSTART):
-    id = rb_intern("rnc_er_nostart");
-    break;
-  case (ERBIT_RNC | RNC_ER_UNDEF):
-    id = rb_intern("rnc_er_undef");
-    break;
-
-  case (ERBIT_RND | RND_ER_LOOPST):
-    id = rb_intern("rnd_er_loopst");
-    break;
-  case (ERBIT_RND | RND_ER_LOOPEL):
-    id = rb_intern("rnd_er_loopel");
-    break;
-  case (ERBIT_RND | RND_ER_CTYPE):
-    id = rb_intern("rnd_er_ctype");
-    break;
-  case (ERBIT_RND | RND_ER_BADSTART):
-    id = rb_intern("rnd_er_badstart");
-    break;
-  case (ERBIT_RND | RND_ER_BADMORE):
-    id = rb_intern("rnd_er_badmore");
-    break;
-  case (ERBIT_RND | RND_ER_BADEXPT):
-    id = rb_intern("rnd_er_badexpt");
-    break;
-  case (ERBIT_RND | RND_ER_BADLIST):
-    id = rb_intern("rnd_er_badlist");
-    break;
-  case (ERBIT_RND | RND_ER_BADATTR):
-    id = rb_intern("rnd_er_badattr");
-    break;
-
-  case (ERBIT_RX | RX_ER_BADCH):
-    id = rb_intern("rx_er_badch");
-    break;
-  case (ERBIT_RX | RX_ER_UNFIN):
-    id = rb_intern("rx_er_unfin");
-    break;
-  case (ERBIT_RX | RX_ER_NOLSQ):
-    id = rb_intern("rx_er_nolsq");
-    break;
-  case (ERBIT_RX | RX_ER_NORSQ):
-    id = rb_intern("rx_er_norsq");
-    break;
-  case (ERBIT_RX | RX_ER_NOLCU):
-    id = rb_intern("rx_er_nolcu");
-    break;
-  case (ERBIT_RX | RX_ER_NORCU):
-    id = rb_intern("rx_er_norcu");
-    break;
-  case (ERBIT_RX | RX_ER_NOLPA):
-    id = rb_intern("rx_er_nolpa");
-    break;
-  case (ERBIT_RX | RX_ER_NORPA):
-    id = rb_intern("rx_er_norpa");
-    break;
-  case (ERBIT_RX | RX_ER_BADCL):
-    id = rb_intern("rx_er_badcl");
-    break;
-  case (ERBIT_RX | RX_ER_NODGT):
-    id = rb_intern("rx_er_nodgt");
-    break;
-  case (ERBIT_RX | RX_ER_DNUOB):
-    id = rb_intern("rx_er_dnuob");
-    break;
-  case (ERBIT_RX | RX_ER_NOTRC):
-    id = rb_intern("rx_er_notrc");
-    break;
-
-  case (ERBIT_XSD | XSD_ER_TYP):
-    id = rb_intern("xsd_er_typ");
-    break;
-  case (ERBIT_XSD | XSD_ER_PAR):
-    id = rb_intern("xsd_er_par");
-    break;
-  case (ERBIT_XSD | XSD_ER_PARVAL):
-    id = rb_intern("xsd_er_parval");
-    break;
-  case (ERBIT_XSD | XSD_ER_VAL):
-    id = rb_intern("xsd_er_val");
-    break;
-  case (ERBIT_XSD | XSD_ER_NPAT):
-    id = rb_intern("xsd_er_npat");
-    break;
-  case (ERBIT_XSD | XSD_ER_WS):
-    id = rb_intern("xsd_er_ws");
-    break;
-  case (ERBIT_XSD | XSD_ER_ENUM):
-    id = rb_intern("xsd_er_enum");
-    break;
-
-  case (ERBIT_DRV | DRV_ER_NODTL):
-    id = rb_intern("drv_er_nodtl");
-    break;
-
-  case (ERBIT_RNV | RNV_ER_ELEM):
-    id = rb_intern("rnv_er_elem");
-    break;
-  case (ERBIT_RNV | RNV_ER_AKEY):
-    id = rb_intern("rnv_er_akey");
-    break;
-  case (ERBIT_RNV | RNV_ER_AVAL):
-    id = rb_intern("rnv_er_aval");
-    break;
-  case (ERBIT_RNV | RNV_ER_EMIS):
-    id = rb_intern("rnv_er_emis");
-    break;
-  case (ERBIT_RNV | RNV_ER_AMIS):
-    id = rb_intern("rnv_er_amis");
-    break;
-  case (ERBIT_RNV | RNV_ER_UFIN):
-    id = rb_intern("rnv_er_ufin");
-    break;
-  case (ERBIT_RNV | RNV_ER_TEXT):
-    id = rb_intern("rnv_er_text");
-    break;
-  case (ERBIT_RNV | RNV_ER_NOTX):
-    id = rb_intern("rnv_er_notx");
-    break;
-
-  default:
-    id = rb_intern("unknown");
-    break;
-  }
-  return id;
-}
-
-int ruby_verror_handler(rnv_t *rnv, int erno, char *format, va_list ap)
-{
-  VALUE self = (VALUE)rnv->user_data;
   document_t *document;
+  VALUE r_doc = rb_iv_get(self, "@document");
+  Data_Get_Struct(r_doc, document_t, document);
 
-  Data_Get_Struct(self, document_t, document);
+  Check_Type(r_msg, T_STRING);
 
-  rnx_st_t *rnx_st = document->rnx_st;
+  document->rnv->verror_handler(document->rnv, ERBIT_DTL, RSTRING_PTR(r_msg), NULL);
 
-  VALUE errors = rb_iv_get(self, "@errors");
+  // skip next error since DTL will push his own
+  document->skip_next_error = 1;
 
-  VALUE error_array = rb_ary_new2(2);
-  VALUE error_str = rb_vsprintf(format, ap);
-  VALUE error_erno = ID2SYM(errno_to_id(erno));
-
-  // lazyly strip with ruby
-  rb_funcall(error_str, rb_intern("strip!"), 0);
-
-  VALUE err_class = Error;
-  VALUE err_obj = rb_class_new_instance(0, NULL, err_class);
-  rb_iv_set(err_obj, "@document", self);
-  rb_iv_set(err_obj, "@code", error_erno);
-  rb_iv_set(err_obj, "@message", error_str);
-  rb_iv_set(err_obj, "@line", rb_iv_get(self, "@last_line"));
-  rb_iv_set(err_obj, "@col", rb_iv_get(self, "@last_col"));
-
-  VALUE expected = rb_str_new2("");
-  if (erno & ERBIT_RNV)
-  {
-    if (document->nexp)
-    {
-      int req = 2, i = 0;
-      char *s;
-      while (req--)
-      {
-        rnx_expected(rnv, rnx_st, document->previous, req);
-        if (i == rnv->rnx_n_exp)
-          continue;
-        if (rnv->rnx_n_exp > document->nexp)
-          break;
-
-        expected = rb_str_cat2(expected, (char *)(req ? "required:\n" : "allowed:\n"));
-
-        for (; i != rnv->rnx_n_exp; ++i)
-        {
-          s = rnx_p2str(rnv, rnv->rnx_exp[i]);
-          expected = rb_str_cat2(expected, "\t");
-          expected = rb_str_cat2(expected, s);
-          expected = rb_str_cat2(expected, "\n");
-          m_free(s);
-        }
-      }
-    }
-  }
-
-  rb_iv_set(err_obj, "@expected", expected);
-
-  rb_ary_push(errors, err_obj);
+  return Qnil;
 }
 
 void document_free(document_t *document)
 {
-  // FIXME : introduce *_delete functions
-  if (document->rnd_st->flat)
-    free(document->rnd_st->flat);
-  free(document->rnd_st);
-
-  ht_dispose(&document->rx_st->ht_r);
-  ht_dispose(&document->rx_st->ht_p);
-  ht_dispose(&document->rx_st->ht_2);
-  ht_dispose(&document->rx_st->ht_m);
-  if (document->rx_st->regex)
-    free(document->rx_st->regex);
-  if (document->rx_st->pattern)
-    free(document->rx_st->pattern);
-  free(document->rx_st);
-
-  if (document->drv_st->dtl)
-    free(document->drv_st->dtl);
-  ht_dispose(&document->drv_st->ht_m);
-  free(document->drv_st);
+  rnd_dispose(document->rnd_st);
+  rx_dispose(document->rx_st);
+  drv_dispose(document->drv_st);
 
   free(document->rnx_st);
 
-  if (document->rnc_st->path)
-    free(document->rnc_st->path);
-  free(document->rnc_st);
+  rnc_dispose(document->rnc_st);
 
   ht_dispose(&document->rn_st->ht_p);
   ht_dispose(&document->rn_st->ht_nc);
@@ -351,16 +39,7 @@ void document_free(document_t *document)
 
   free(document->rn_st);
 
-  if (document->rnv->rn_pattern)
-    free(document->rnv->rn_pattern);
-  if (document->rnv->rn_nameclass)
-    free(document->rnv->rn_nameclass);
-  if (document->rnv->rn_string)
-    free(document->rnv->rn_string);
-  if (document->rnv->rnx_exp)
-    free(document->rnv->rnx_exp);
-
-  free(document->rnv);
+  rnv_dispose(document->rnv);
 
   if (document->text)
     free(document->text);
@@ -372,13 +51,13 @@ VALUE rb_document_alloc(VALUE klass)
 {
   document_t *document = ruby_xmalloc(sizeof(document_t));
 
-  document->rnv = malloc(sizeof(rnv_t));
-  document->rn_st = malloc(sizeof(rn_st_t));
-  document->rnc_st = malloc(sizeof(rnc_st_t));
-  document->rnx_st = malloc(sizeof(rnx_st_t));
-  document->drv_st = malloc(sizeof(drv_st_t));
-  document->rx_st = malloc(sizeof(rx_st_t));
-  document->rnd_st = malloc(sizeof(rnd_st_t));
+  document->rnv = calloc(1, sizeof(rnv_t));
+  document->rn_st = calloc(1, sizeof(rn_st_t));
+  document->rnc_st = calloc(1, sizeof(rnc_st_t));
+  document->rnx_st = calloc(1, sizeof(rnx_st_t));
+  document->drv_st = calloc(1, sizeof(drv_st_t));
+  document->rx_st = calloc(1, sizeof(rx_st_t));
+  document->rnd_st = calloc(1, sizeof(rnd_st_t));
 
   return Data_Wrap_Struct(klass, NULL, document_free, document);
 }
@@ -393,6 +72,7 @@ VALUE rb_document_init(VALUE self)
   rnx_init(document->rnv, document->rnx_st);
 
   document->opened = document->ok = 0;
+  document->skip_next_error = 0;
   document->rnv->user_data = (void *)self;
   document->rnv->verror_handler = &ruby_verror_handler;
   document->nexp = 16; /* maximum number of candidates to display */
@@ -505,8 +185,9 @@ static int rb_dtl_equal(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, cha
   VALUE libraries = rb_iv_get(self, "@libraries");
   VALUE lib = rb_hash_aref(libraries, INT2FIX(uri));
 
-  VALUE ret = rb_funcall(lib, rb_intern("equal"), 4,
-                         rb_str_new2(typ), rb_str_new2(val), rb_str_new2(s), INT2FIX(n));
+  // do we need n here, do s always null terminated ?
+  VALUE ret = rb_funcall(lib, rb_intern("equal"), 3,
+                         rb_str_new2(typ), rb_str_new2(val), rb_str_new2(s));
 
   return RTEST(ret);
 }
@@ -517,8 +198,9 @@ static int rb_dtl_allows(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, ch
   VALUE libraries = rb_iv_get(self, "@libraries");
   VALUE lib = rb_hash_aref(libraries, INT2FIX(uri));
 
-  VALUE ret = rb_funcall(lib, rb_intern("allows"), 4,
-                         rb_str_new2(typ), rb_str_new2(ps), rb_str_new2(s), INT2FIX(n));
+  // do we need n here, do s always null terminated ?
+  VALUE ret = rb_funcall(lib, rb_intern("allows"), 3,
+                         rb_str_new2(typ), rb_str_new2(ps), rb_str_new2(s));
 
   return RTEST(ret);
 }
@@ -546,6 +228,8 @@ VALUE rb_document_add_dtl(VALUE self, VALUE r_ns, VALUE r_cb_obj)
     int uri = document->drv_st->dtl[document->drv_st->n_dtl - 1].uri;
 
     VALUE libraries = rb_iv_get(self, "@libraries");
+
+    rb_iv_set(r_cb_obj, "@document", self);
 
     rb_hash_aset(libraries, INT2FIX(uri), r_cb_obj);
   }
@@ -723,16 +407,16 @@ void Init_rnv()
    * @return [Integer]
    */
   rb_define_attr(Error, "col", 1, 0);
+
+  DataTypeLibrary = rb_define_class_under(RNV, "DataTypeLibrary", rb_cObject);
+
   /*
-   * error message
-   * @return [String]
+   * document in which library is registered
+   * @return [RNV::Document]
    */
-  rb_define_attr(Error, "message", 1, 0);
-  /*
-   * what was expected
-   * @return [String]
-   */
-  rb_define_attr(Error, "expected", 1, 0);
+  rb_define_attr(DataTypeLibrary, "document", 1, 0);
+
+  rb_define_method(DataTypeLibrary, "push_error", rb_datatype_push_error, 1);
 
   Document = rb_define_class_under(RNV, "Document", rb_cObject);
 

@@ -12,6 +12,7 @@ struct sc_stack {
 
 extern void sc_init(struct sc_stack *stp);
 extern void sc_clear(struct sc_stack *stp);
+extern void sc_dispose(struct sc_stack *stp);
 
 extern void sc_open(struct sc_stack *stp);
 extern void sc_lock(struct sc_stack *stp);

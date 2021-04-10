@@ -27,6 +27,8 @@ extern void rx_default_verror_handler(rnv_t *rnv, int erno,va_list ap);
 extern void rx_init(rx_st_t *rx_st);
 extern void rx_clear(rx_st_t *rx_st);
 
+extern void rx_dispose(rx_st_t *rx_st);
+
 /* just compiles the expression to check the syntax */
 extern int rx_check(rnv_t *rnv, rx_st_t *rx_st, char *rx);
 

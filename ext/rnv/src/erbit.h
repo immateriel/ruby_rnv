@@ -11,4 +11,6 @@
 #define ERBIT_DRV 0x20000
 #define ERBIT_RNV 0x40000
 
+#define ERBIT_DTL 0x80000
+
 #endif

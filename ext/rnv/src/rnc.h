@@ -56,6 +56,8 @@ extern void rnc_default_verror_handler(rnv_t *rnv, int erno,va_list ap);
 extern void rnc_init(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st);
 extern void rnc_clear(void);
 
+extern void rnc_dispose(rnc_st_t *rnc_st);
+
 extern int rnc_open(struct rnc_source *sp,char *fn);
 extern int rnc_stropen(struct rnc_source *sp,char *fn,char *s,int len);
 extern int rnc_bind(struct rnc_source *sp,char *fn,int fd);
