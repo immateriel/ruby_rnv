@@ -1120,6 +1120,7 @@ static void include(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st, struct rnc_sou
     nsuri=inherit(rnv, rnc_st, rn_st, sp);
     sc_open(&rnc_st->nss); open_scope(rnc_st, sp);
     if(file(rnv, rnc_st, rn_st, sp,nsuri)!=-1) error(1,sp,RNC_ER_NOTGR,sp->fn,CUR(sp).line,CUR(sp).col);
+    sc_close(&rnc_st->nss);
     sc_lock(&rnc_st->defs);
     if(CUR(sp).sym==SYM_LCUR) {
       getsym(sp);
@@ -1127,7 +1128,6 @@ static void include(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st, struct rnc_sou
       chk_skip_get(sp,SYM_RCUR);
     }
     fold_scope(rnv, rnc_st, rn_st, sp);
-    sc_close(&rnc_st->nss);
   }
 }
 
