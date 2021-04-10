@@ -1167,7 +1167,7 @@ static int topLevel(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st, struct rnc_sou
   getsym(sp); getsym(sp);
   while(decl(rnv, rn_st, rnc_st, sp));
   if((is_grammar=(CUR(sp).sym==SYM_GRAMMAR))) {
-    chk_get(sp,SYM_LCUR);
+    getsym(sp);chk_get(sp,SYM_LCUR);
   }
   if(grammarContent(rnv, rn_st, rnc_st, sp)) {
     while(grammarContent(rnv, rn_st, rnc_st, sp));
