@@ -9,24 +9,22 @@
 #include "rnd.h"
 #include "rnl.h"
 
-void rnl_default_verror_handler(rnv_t *rnv, int erno,va_list ap) {
+void rnl_default_verror_handler(void *data, int erno, int (*handler)(void *data, int erno,char *format, va_list ap), va_list ap) {
   if(erno&ERBIT_RNC) {
-    rnc_default_verror_handler(rnv, erno&~ERBIT_RNC,ap);
+    rnc_default_verror_handler(data, erno&~ERBIT_RNC,handler, ap);
   } else if(erno&ERBIT_RND) {
-    rnd_default_verror_handler(rnv, erno&~ERBIT_RND,ap);
+    rnd_default_verror_handler(data, erno&~ERBIT_RND,handler, ap);
   }
 }
 
-static void verror_handler_rnc(rnv_t *rnv, int erno,va_list ap) {rnl_default_verror_handler(rnv, erno|ERBIT_RNC,ap);}
-static void verror_handler_rnd(rnv_t *rnv, int erno,va_list ap) {rnl_default_verror_handler(rnv, erno|ERBIT_RND,ap);}
-
 void rnl_init(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st, rnd_st_t *rnd_st) {
-    rnv->rnl_verror_handler=&rnl_default_verror_handler;
     rn_init(rnv, rn_st);
     rnc_init(rnv, rnc_st);
-    rnv->rnc_verror_handler=&verror_handler_rnc;
+    rnc_st->verror_handler = rnv->verror_handler;
+    rnc_st->user_data = rnv->user_data;
     rnd_init(rnv, rnd_st); 
-    rnv->rnd_verror_handler=&verror_handler_rnd;
+    rnd_st->verror_handler = rnv->verror_handler;
+    rnd_st->user_data = rnv->user_data;
 }
 
 static int load(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st, rnd_st_t *rnd_st, struct rnc_source *sp) {
@@ -40,21 +38,24 @@ static int load(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st, rnd_st_t *rnd_st, 
 
 int rnl_fn(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st, rnd_st_t *rnd_st, char *fn) {
   struct rnc_source src;
-  src.rnv = rnv;
+  src.user_data = rnv->user_data;
+  src.verror_handler = rnv->verror_handler;
   rnc_open(&src,fn); 
   return load(rnv, rnc_st, rn_st, rnd_st, &src);
 }
 
 int rnl_fd(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st, rnd_st_t *rnd_st, char *fn,int fd) {
   struct rnc_source src;
-  src.rnv = rnv;
+  src.user_data = rnv->user_data;
+  src.verror_handler = rnv->verror_handler;
   rnc_bind(&src,fn,fd); 
   return load(rnv, rnc_st, rn_st, rnd_st, &src);
 }
 
 int rnl_s(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st, rnd_st_t *rnd_st, char *fn,char *s,int len) {
   struct rnc_source src;
-  src.rnv = rnv;
+  src.user_data = rnv->user_data;
+  src.verror_handler = rnv->verror_handler;
   rnc_stropen(&src,fn,s,len); 
   return load(rnv, rnc_st, rn_st, rnd_st, &src);
 }

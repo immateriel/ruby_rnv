@@ -20,7 +20,28 @@ typedef struct rn_st
   int len_nc;
   int len_s;
   int adding_ps;
+
 } rn_st_t;
+
+struct rnc_cym {
+  char *s; int slen;
+  int line,col;
+  int sym;
+};
+
+struct rnc_source {
+  int flags;
+  char *fn; int fd;
+  char *buf; int i,n;
+  int complete;
+  int line,col,prevline/*when error reported*/;
+  int u,v,w; int nx;
+  int cur;
+  struct rnc_cym sym[2];
+
+  int (*verror_handler)(void *data, int erno, char *format, va_list ap);
+  void *user_data;
+};
 
 typedef struct rnc_st
 {
@@ -31,6 +52,10 @@ typedef struct rnc_st
   struct sc_stack defs;
   struct sc_stack refs;
   struct sc_stack prefs;
+
+  int (*verror_handler)(void *data, int erno, char *format, va_list ap);
+  void *user_data;
+
 } rnc_st_t;
 
 typedef struct rnd_st
@@ -39,6 +64,10 @@ typedef struct rnd_st
   int n_f;
   int *flat;
   int errors;
+
+  int (*verror_handler)(void *data, int erno, char *format, va_list ap);
+  void *user_data;
+
 } rnd_st_t;
 
 typedef struct rnv rnv_t;
@@ -71,8 +100,8 @@ typedef struct rx_st
 
   int rx_compact;
 
-  // FIXME: for error handlers
-  rnv_t *rnv;
+  int (*verror_handler)(void *data, int erno, char *format, va_list ap);
+  void *user_data;
 
 } rx_st_t;
 
@@ -87,6 +116,10 @@ typedef struct drv_st
   int (*memo)[5];
 
   int drv_compact;
+
+  int (*verror_handler)(void *data, int erno, char *format, va_list ap);
+  void *user_data;
+
 } drv_st_t;
 
 typedef struct rnv
@@ -105,18 +138,8 @@ typedef struct rnv
   int *rnx_exp;
   int rnx_len_exp;
 
-  int (*verror_handler)(rnv_t *rnv, int erno, char *format,va_list ap);
-
-  void (*drv_verror_handler)(rnv_t *rnv, int erno, va_list ap);
-  void (*rnc_verror_handler)(rnv_t *rnv, int erno, va_list ap);
-  void (*rnd_verror_handler)(rnv_t *rnv, int erno, va_list ap);
-  void (*rnl_verror_handler)(rnv_t *rnv, int erno, va_list ap);
-  void (*rnv_verror_handler)(rnv_t *rnv, int erno, va_list ap);
-  void (*rx_verror_handler)(rnv_t *rnv, int erno, va_list ap);
-  void (*xsd_verror_handler)(rnv_t *rnv, int erno, va_list ap);
-
+  int (*verror_handler)(void *data, int erno, char *format,va_list ap);
   void *user_data;
-
 } rnv_t;
 
 #endif // TYPE_H

@@ -31,27 +31,7 @@
 #define RNC_ER_NOSTART 70
 #define RNC_ER_UNDEF 71
 
-struct rnc_cym {
-  char *s; int slen;
-  int line,col;
-  int sym;
-};
-
-struct rnc_source {
-  int flags;
-  char *fn; int fd;
-  char *buf; int i,n;
-  int complete;
-  int line,col,prevline/*when error reported*/;
-  int u,v,w; int nx;
-  int cur;
-  struct rnc_cym sym[2];
-
-  // FIXME: for error handlers
-  rnv_t *rnv;
-};
-
-extern void rnc_default_verror_handler(rnv_t *rnv, int erno,va_list ap);
+extern void rnc_default_verror_handler(void *data, int erno, int (*handler)(void *data, int erno,char *format, va_list ap), va_list ap);
 
 extern void rnc_init(rnv_t *rnv, rnc_st_t *rnc_st);
 extern void rnc_dispose(rnc_st_t *rnc_st);

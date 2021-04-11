@@ -5,7 +5,7 @@
 
 VALUE RNV, SchemaNotLoaded, Error, DataTypeLibrary, Document;
 
-extern int ruby_verror_handler(rnv_t *rnv, int erno, char *format, va_list ap);
+extern int ruby_verror_handler(void *data, int erno, char *format, va_list ap);
 
 VALUE rb_datatype_push_error(VALUE self, VALUE r_msg)
 {
@@ -15,7 +15,7 @@ VALUE rb_datatype_push_error(VALUE self, VALUE r_msg)
 
   Check_Type(r_msg, T_STRING);
 
-  document->rnv->verror_handler(document->rnv, ERBIT_DTL, RSTRING_PTR(r_msg), NULL);
+  document->rnv->verror_handler((void *)r_doc, ERBIT_DTL, RSTRING_PTR(r_msg), NULL);
 
   // skip next error since DTL will push his own
   document->skip_next_error = 1;
@@ -66,8 +66,10 @@ VALUE rb_document_init(VALUE self)
 
   document->opened = document->ok = 0;
   document->skip_next_error = 0;
+  
   document->rnv->user_data = (void *)self;
   document->rnv->verror_handler = &ruby_verror_handler;
+
   document->nexp = 16; /* maximum number of candidates to display */
   document->text = NULL;
 

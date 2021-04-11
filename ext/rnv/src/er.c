@@ -12,4 +12,4 @@ int er_default_printf(char *format,...) {
   return ret;
 }
 int er_default_vprintf(char *format,va_list ap) {return vfprintf(stderr,format,ap);}
-int verror_default_handler(rnv_t *rnv, int erno, char *format,va_list ap) {return vfprintf(stderr,format,ap);}
+int verror_default_handler(void *data, int erno, char *format,va_list ap) {return vfprintf(stderr,format,ap);}

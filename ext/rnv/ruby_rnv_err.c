@@ -439,12 +439,14 @@ static void ruby_parse_error(VALUE err_obj, int erno, va_list ap)
     //  return id;
 }
 
-int ruby_verror_handler(rnv_t *rnv, int erno, char *format, va_list ap)
+int ruby_verror_handler(void *data, int erno, char *format, va_list ap)
 {
-    VALUE self = (VALUE)rnv->user_data;
+    VALUE self = (VALUE)data;
     document_t *document;
 
     Data_Get_Struct(self, document_t, document);
+
+    rnv_t *rnv = document->rnv;
 
     if (!document->skip_next_error)
     {

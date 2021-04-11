@@ -17,11 +17,10 @@
 #include "er.h"
 #include "xsd.h"
 
-#define err(msg) (*rnv->verror_handler)(rnv,erno|ERBIT_XSD,msg"\n",ap)
-void xsd_default_verror_handler(rnv_t *rnv, int erno,va_list ap) {
-  (*er_printf)("XML Schema datatypes: ");
+#define err(msg) (*handler)(data,erno|ERBIT_XSD,"XML Schema datatypes: "msg"\n",ap)
+void xsd_default_verror_handler(void *data, int erno, int (*handler)(void *data, int erno,char *format, va_list ap), va_list ap) {
   if(erno&ERBIT_RX) {
-    rx_default_verror_handler(rnv, erno&~ERBIT_RX,ap);
+    rx_default_verror_handler(data, erno&~ERBIT_RX,handler,ap);
   } else {
     switch(erno) {
     case XSD_ER_TYP: err("unknown type %s"); break;
@@ -37,15 +36,11 @@ void xsd_default_verror_handler(rnv_t *rnv, int erno,va_list ap) {
 }
 
 static void error_handler(rx_st_t *rx_st, int erno,...) {
-  va_list ap; va_start(ap,erno); (*rx_st->rnv->xsd_verror_handler)(rx_st->rnv,erno,ap); va_end(ap);
+  va_list ap; va_start(ap,erno); xsd_default_verror_handler(rx_st->user_data,erno,rx_st->verror_handler,ap); va_end(ap);
 }
 
-static void verror_handler_rx(rnv_t *rnv, int erno,va_list ap) {xsd_default_verror_handler(rnv,erno|ERBIT_RX,ap);}
-
 void xsd_init(rx_st_t *rx_st) {
-    rx_st->rnv->xsd_verror_handler = &xsd_default_verror_handler;
     rx_init(rx_st);
-    rx_st->rnv->rx_verror_handler=&verror_handler_rx;
 }
 
 #define FCT_ENUMERATION 0

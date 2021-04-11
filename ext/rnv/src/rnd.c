@@ -15,8 +15,8 @@
 
 #define LEN_F RND_LEN_F
 
-#define err(msg) (*rnv->verror_handler)(rnv,erno|ERBIT_RND,"error: "msg"\n",ap)
-void rnd_default_verror_handler(rnv_t *rnv, int erno,va_list ap) {
+#define err(msg) (*handler)(data,erno|ERBIT_RND,"error: "msg"\n",ap)
+void rnd_default_verror_handler(void *data, int erno, int (*handler)(void *data, int erno,char *format, va_list ap), va_list ap) {
   switch(erno) {
   case RND_ER_LOOPST: err("loop in start pattern"); break;
   case RND_ER_LOOPEL: err("loop in pattern for element '%s'"); break;
@@ -31,7 +31,7 @@ void rnd_default_verror_handler(rnv_t *rnv, int erno,va_list ap) {
 }
 
 void rnd_init(rnv_t *rnv, rnd_st_t *rnd_st) {
-    rnv->rnd_verror_handler=&rnd_default_verror_handler;
+    rnd_st->verror_handler = &verror_default_handler;
 }
 
 void rnd_dispose(rnd_st_t *rnd_st) {
@@ -44,7 +44,7 @@ void rnd_clear(void) {}
 
 static void error_handler(rnv_t *rnv, rnd_st_t *rnd_st, int er_no,...) {
   va_list ap; va_start(ap,er_no); 
-  rnv->rnd_verror_handler(rnv, er_no,ap); 
+  rnd_default_verror_handler(rnv, er_no, rnd_st->verror_handler, ap); 
   va_end(ap);
   ++rnd_st->errors;
 }

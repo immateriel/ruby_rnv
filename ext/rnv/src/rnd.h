@@ -15,7 +15,7 @@
 #define RND_ER_BADLIST 6
 #define RND_ER_BADATTR 7
 
-extern void rnd_default_verror_handler(rnv_t *rnv, int erno,va_list ap);
+extern void rnd_default_verror_handler(void *data, int erno, int (*handler)(void *data, int erno,char *format, va_list ap), va_list ap);
 
 extern void rnd_init(rnv_t *rnv, rnd_st_t *rnd_st);
 extern void rnd_clear(void);

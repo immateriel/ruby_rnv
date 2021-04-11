@@ -19,7 +19,7 @@
 #define RX_ER_DNUOB 10
 #define RX_ER_NOTRC 11
 
-extern void rx_default_verror_handler(rnv_t *rnv, int erno,va_list ap);
+extern void rx_default_verror_handler(void *data, int erno, int (*handler)(void *data, int erno,char *format, va_list ap), va_list ap);
 
 extern void rx_init(rx_st_t *rx_st);
 extern void rx_clear(rx_st_t *rx_st);

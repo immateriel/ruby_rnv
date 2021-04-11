@@ -11,10 +11,10 @@
 #include "er.h"
 #include "rnv.h"
 
-#define err(msg) (*rnv->verror_handler)(rnv,erno|ERBIT_RNV,msg"\n",ap);
-void rnv_default_verror_handler(rnv_t *rnv, int erno,va_list ap) {
+#define err(msg) (*handler)(data,erno|ERBIT_RNV,msg"\n",ap);
+void rnv_default_verror_handler(void *data, int erno, int (*handler)(void *data, int erno,char *format, va_list ap), va_list ap) {
   if(erno&ERBIT_DRV) {
-    drv_default_verror_handler(rnv, erno&~ERBIT_DRV,ap);
+    drv_default_verror_handler(data, erno&~ERBIT_DRV, handler, ap);
   } else {
     switch(erno) {
     case RNV_ER_ELEM: err("element %s^%s not allowed"); break;
@@ -31,15 +31,12 @@ void rnv_default_verror_handler(rnv_t *rnv, int erno,va_list ap) {
 }
 
 static void error_handler(rnv_t *rnv, int erno,...) {
-  va_list ap; va_start(ap,erno); (*rnv->rnv_verror_handler)(rnv,erno,ap); va_end(ap);
+  va_list ap; va_start(ap,erno); rnv_default_verror_handler(rnv->user_data,erno,rnv->verror_handler,ap); va_end(ap);
 }
 
-static void verror_handler_drv(rnv_t *rnv, int erno,va_list ap) {rnv_default_verror_handler(rnv,erno|ERBIT_DRV,ap);}
-
 void rnv_init(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, rx_st_t *rx_st) {
-    rnv->rnv_verror_handler=&rnv_default_verror_handler;
+    rnv->verror_handler = &verror_default_handler;
     drv_init(rnv, drv_st, rn_st, rx_st);
-    rnv->drv_verror_handler=&verror_handler_drv;
 }
 
 void rnv_dispose(rnv_t *rnv) {

@@ -15,7 +15,7 @@ struct dtl {
   int (*allows)(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ,char *ps,char *s,int n);
 };
 
-extern void drv_default_verror_handler(rnv_t *rnv, int erno,va_list ap);
+extern void drv_default_verror_handler(void *data, int erno, int (*handler)(void *data, int erno,char *format, va_list ap), va_list ap);
 
 extern void drv_init(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, rx_st_t *rx_st);
 

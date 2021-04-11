@@ -11,6 +11,6 @@ extern int (*er_vprintf)(char *format,va_list ap);
 
 extern int er_default_printf(char *format,...);
 extern int er_default_vprintf(char *format,va_list ap);
-extern int verror_default_handler(rnv_t *rnv, int erno, char *format,va_list ap);
+extern int verror_default_handler(void *data, int erno, char *format,va_list ap);
 
 #endif

@@ -187,9 +187,8 @@ static int add_r(rx_st_t *rx_st, char *rx) {
 
 #define ERRPOS
 
-#define err(msg) (*rnv->verror_handler)(rnv,erno|ERBIT_RX,"regular expressions: "msg" in \"%s\" at offset %i\n",ap)
-void rx_default_verror_handler(rnv_t *rnv, int erno,va_list ap) {
-  //(*er_printf)("regular expressions: ");
+#define err(msg) (*handler)(data, erno|ERBIT_RX,"regular expressions: "msg" in \"%s\" at offset %i\n",ap)
+void rx_default_verror_handler(void *data, int erno, int (*handler)(void *data, int erno, char *format, va_list ap), va_list ap) {
   switch(erno) {
   case RX_ER_BADCH: err("bad character"); break;
   case RX_ER_UNFIN: err("unfinished expression"); break;
@@ -208,7 +207,7 @@ void rx_default_verror_handler(rnv_t *rnv, int erno,va_list ap) {
 }
 
 static void error_handler(rx_st_t *rx_st,int erno,...) {
-  va_list ap; va_start(ap,erno); (*rx_st->rnv->rx_verror_handler)(rx_st->rnv, erno,ap); va_end(ap);
+  va_list ap; va_start(ap,erno); rx_default_verror_handler(rx_st->user_data, erno, rx_st->verror_handler, ap); va_end(ap);
 }
 
 #define LEN_M RX_LEN_M
@@ -247,7 +246,7 @@ static void accept_m(rx_st_t *rx_st) {
 
 static void windup(rx_st_t *rx_st);
 void rx_init(rx_st_t *rx_st) {
-  rx_st->rnv->rx_verror_handler=&rx_default_verror_handler;
+  rx_st->verror_handler=&verror_default_handler;
 
   rx_st->pattern=(int *)m_alloc(rx_st->len_p=P_AVG_SIZE*LEN_P,sizeof(int));
   rx_st->r2p=(int (*)[2])m_alloc(rx_st->len_2=LEN_2,sizeof(int[2]));

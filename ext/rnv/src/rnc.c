@@ -74,9 +74,9 @@ static char *kwdtab[NKWD]={
 #define SYM_DOCUMENTATION 41 /* ## */
 #define SYM_LITERAL 42
 
-#define err(msg) (*rnv->verror_handler)(rnv,erno|ERBIT_RNC,"%s:%i:%i: error: "msg"\n",ap)
-#define warn(msg) (*rnv->verror_handler)(rnv,erno|ERBIT_RNC,"%s:%i:%i: warning: "msg"\n",ap)
-void rnc_default_verror_handler(rnv_t *rnv, int erno,va_list ap) {
+#define err(msg) (*handler)(data,erno|ERBIT_RNC,"%s:%i:%i: error: "msg"\n",ap)
+#define warn(msg) (*handler)(data,erno|ERBIT_RNC,"%s:%i:%i: warning: "msg"\n",ap)
+void rnc_default_verror_handler(void *data, int erno, int (*handler)(void *data, int erno,char *format, va_list ap), va_list ap) {
   switch(erno) {
   case RNC_ER_IO: err("I/O error: %s\n"); break;
   case RNC_ER_UTF: err("invalid UTF-8 sequence"); break;
@@ -201,7 +201,7 @@ int rnc_errors(struct rnc_source *sp) {
 #define DE_ILEAVE 16
 
 void rnc_init(rnv_t *rnv, rnc_st_t *rnc_st) {
-    rnv->rnc_verror_handler=&rnc_default_verror_handler;
+    rnc_st->verror_handler = &verror_default_handler;
     rnc_st->len_p=LEN_P; rnc_st->path=(char*)m_alloc(rnc_st->len_p,sizeof(char));
     /* initialize scopes */
     sc_init(&rnc_st->nss); sc_init(&rnc_st->dts); sc_init(&rnc_st->defs); sc_init(&rnc_st->refs); sc_init(&rnc_st->prefs);
@@ -222,7 +222,7 @@ void rnc_dispose(rnc_st_t *rnc_st) {
 
 static void error(int force,struct rnc_source *sp,int erno,...) {
   if(force || sp->line != sp->prevline) {
-    va_list ap; va_start(ap,erno); sp->rnv->rnc_verror_handler(sp->rnv, erno,ap); va_end(ap);
+    va_list ap; va_start(ap,erno); rnc_default_verror_handler(sp->user_data, erno, sp->verror_handler, ap); va_end(ap);
     sp->prevline=sp->line;
   }
   sp->flags|=SRC_ERRORS;
@@ -230,7 +230,7 @@ static void error(int force,struct rnc_source *sp,int erno,...) {
 
 static void warning(int force,struct rnc_source *sp,int erno,...) {
   if(force || sp->line != sp->prevline) {
-    va_list ap; va_start(ap,erno); sp->rnv->rnc_verror_handler(sp->rnv, erno,ap); va_end(ap);
+    va_list ap; va_start(ap,erno); rnc_default_verror_handler(sp->user_data, erno,sp->verror_handler, ap); va_end(ap);
   }
 }
 
@@ -910,7 +910,8 @@ static void add_well_known_nss(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st, int
 static int file(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st, struct rnc_source *sp,int nsuri) {
   int ret=0;
   struct rnc_source src;
-  src.rnv = rnv;
+  src.user_data = rnv->user_data;
+  src.verror_handler = rnv->verror_handler;
   add_well_known_nss(rnv, rnc_st, rn_st, nsuri);
   if(rnc_open(&src,rnc_st->path)!=-1) {
     ret=topLevel(rnv, rnc_st, rn_st, &src);

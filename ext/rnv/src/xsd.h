@@ -14,7 +14,7 @@
 #define XSD_ER_WS 5
 #define XSD_ER_ENUM 6
 
-extern void xsd_default_verror_handler(rnv_t *rnv, int erno,va_list ap);
+extern void xsd_default_verror_handler(void *data, int erno, int (*handler)(void *data, int erno,char *format, va_list ap), va_list ap);
 
 extern void xsd_init(rx_st_t *rx_st);
 

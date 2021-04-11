@@ -6,7 +6,7 @@
 #include <stdarg.h>
 #include "type.h"
 
-extern void rnl_default_verror_handler(rnv_t *rnv, int erno,va_list ap);
+extern void rnl_default_verror_handler(void *data, int erno, int (*handler)(void *data, int erno,char *format, va_list ap), va_list ap);
 
 extern void rnl_init(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st, rnd_st_t *rnd_st);
 

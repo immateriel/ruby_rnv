@@ -15,7 +15,7 @@
 #define RNV_ER_TEXT 6
 #define RNV_ER_NOTX 7
 
-extern void rnv_default_verror_handler(rnv_t *rnv, int erno,va_list ap);
+extern void rnv_default_verror_handler(void *data, int erno, int (*handler)(void *data, int erno,char *format, va_list ap), va_list ap);
 
 extern void rnv_init(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, rx_st_t *rx_st);
 extern void rnv_dispose(rnv_t *rnv);
