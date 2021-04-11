@@ -10,7 +10,7 @@ module RNV
 
     # @param [String] data original content
     # @return [String] context
-    def contextualize(data, max_len = 50)
+    def contextualize(data, max_len = 60)
       out = ""
       if data and @line
         err_data = data.split("\n")[@line - 1]
@@ -20,8 +20,7 @@ module RNV
         if @col > max_len
           start = @col - max_len
         end
-        out += "\t"
-        out += (start > 0 ? "…" : "") + err_data[start..(@col + max_len)] + (@col + max_len < err_data.length ? "…" : "")
+        out += (start > 0 ? "…" : "") + err_data[start..(@col + max_len)].strip + (@col + max_len < err_data.length ? "…" : "")
       end
       out
     end
