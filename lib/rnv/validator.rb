@@ -13,26 +13,26 @@ module RNV
     end
 
     def start_element_namespace(name, attrs = [], prefix = nil, uri = nil, ns = nil)
-      update_line_col
       tag_attrs = attrs.map { |attr| [attr.uri ? "#{attr.uri}:#{attr.localname}" : attr.localname, attr.value] }
       tag_name = uri ? "#{uri}:#{name}" : name
       @document.start_tag(@pre_processor.tag(tag_name), @pre_processor.attributes(tag_attrs))
+      update_line_col
     end
 
     def end_element_namespace(name, prefix = nil, uri = nil)
-      update_line_col
       tag_name = uri ? "#{uri}:#{name}" : name
       @document.end_tag(@pre_processor.tag(tag_name))
+      update_line_col
     end
 
     def characters str
-      update_line_col
       @document.characters(@pre_processor.text(str))
+      update_line_col
     end
 
     def cdata_block str
-      update_line_col
       @document.characters(@pre_processor.text(str))
+      update_line_col
     end
 
     private

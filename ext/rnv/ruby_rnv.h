@@ -36,8 +36,10 @@ typedef struct document
   int start;
   int current;
   int previous;
-  int lastline;
-  int lastcol;
+
+  int last_line;
+  int last_col;
+
   int level;
   int opened;
   int ok;
@@ -46,8 +48,6 @@ typedef struct document
   int n_txt;
   int mixed;
   int nexp;
-
-  int skip_next_error;
 
   rnv_t *rnv;
   rn_st_t *rn_st;

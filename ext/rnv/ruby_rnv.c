@@ -17,9 +17,6 @@ VALUE rb_datatype_push_error(VALUE self, VALUE r_msg)
 
   document->rnv->verror_handler((void *)r_doc, ERBIT_DTL, RSTRING_PTR(r_msg), NULL);
 
-  // skip next error since DTL will push his own
-  document->skip_next_error = 1;
-
   return Qnil;
 }
 
@@ -65,8 +62,7 @@ VALUE rb_document_init(VALUE self)
   rnx_init(document->rnv);
 
   document->opened = document->ok = 0;
-  document->skip_next_error = 0;
-  
+
   document->rnv->user_data = (void *)self;
   document->rnv->verror_handler = &ruby_verror_handler;
 
@@ -76,6 +72,12 @@ VALUE rb_document_init(VALUE self)
   rb_iv_set(self, "@errors", rb_ary_new2(0));
 
   rb_iv_set(self, "@libraries", rb_hash_new());
+
+  document->last_line = -1;
+  document->last_col = -1;
+
+  rb_iv_set(self, "@last_line", INT2NUM(-1));
+  rb_iv_set(self, "@last_col", INT2NUM(-1));
 
   //document->rx_st->rx_compact = 1;
   //document->drv_st->drv_compact = 1;
@@ -254,6 +256,11 @@ VALUE rb_document_begin(VALUE self)
 
   document->ok = document->current = document->previous = document->start;
 
+  document->last_line = 0;
+  document->last_col = 0;
+
+  document->level = 0;
+
   document->text[0] = '\0';
   document->n_txt = 0;
   document->mixed = 0;
@@ -345,6 +352,10 @@ VALUE rb_document_start_tag(VALUE self, VALUE r_name, VALUE r_attrs)
     document->mixed = 0;
     free(attrs);
   }
+  else
+  {
+    ++document->level;
+  }
 
   return RTEST(document->ok);
 }
@@ -376,6 +387,13 @@ VALUE rb_document_end_tag(VALUE self, VALUE r_name)
                    document->ok;
 
     document->mixed = 1;
+  }
+  else
+  {
+    if (document->level == 0)
+      document->current = document->previous;
+    else
+      --document->level;
   }
 
   return RTEST(document->ok);

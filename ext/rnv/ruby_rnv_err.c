@@ -439,6 +439,35 @@ static void ruby_parse_error(VALUE err_obj, int erno, va_list ap)
     //  return id;
 }
 
+VALUE ruby_create_error(VALUE self, VALUE line, VALUE col, int erno, char *format, va_list ap)
+{
+    VALUE err_class = Error;
+    VALUE err_obj = rb_class_new_instance(0, NULL, err_class);
+
+    ruby_parse_error(err_obj, erno, ap);
+
+    VALUE error_str;
+
+    // do not vsprintf if ap is NULL
+    if (ap)
+        error_str = rb_vsprintf(format, ap);
+    else
+        error_str = rb_str_new2(format);
+
+    // lazyly strip with ruby
+    rb_funcall(error_str, rb_intern("strip!"), 0);
+
+    rb_iv_set(err_obj, "@document", self);
+    rb_iv_set(err_obj, "@original_message", error_str);
+
+    rb_iv_set(err_obj, "@line", line); // set line from sax parser
+    rb_iv_set(err_obj, "@col", col);   // set col from sax parser
+
+    rb_iv_set(err_obj, "@required", rb_ary_new2(0));
+    rb_iv_set(err_obj, "@allowed", rb_ary_new2(0));
+    return err_obj;
+}
+
 int ruby_verror_handler(void *data, int erno, char *format, va_list ap)
 {
     VALUE self = (VALUE)data;
@@ -448,77 +477,69 @@ int ruby_verror_handler(void *data, int erno, char *format, va_list ap)
 
     rnv_t *rnv = document->rnv;
 
-    if (!document->skip_next_error)
+    VALUE errors = rb_iv_get(self, "@errors");
+
+    if (erno & ERBIT_RNL || erno & ERBIT_RNC || erno & ERBIT_RND)
     {
-        VALUE errors = rb_iv_get(self, "@errors");
-
-        VALUE err_class = Error;
-        VALUE err_obj = rb_class_new_instance(0, NULL, err_class);
-
-        ruby_parse_error(err_obj, erno, ap);
-
-        VALUE error_str;
-
-        // do not vsprintf if ap is NULL
-        if (ap)
-            error_str = rb_vsprintf(format, ap);
-        else
-            error_str = rb_str_new2(format);
-
-        // lazyly strip with ruby
-        rb_funcall(error_str, rb_intern("strip!"), 0);
-
-        rb_iv_set(err_obj, "@document", self);
-        //rb_iv_set(err_obj, "@code", error_erno);
-        rb_iv_set(err_obj, "@original_message", error_str);
-        rb_iv_set(err_obj, "@line", rb_iv_get(self, "@last_line")); // set line from sax parser
-        rb_iv_set(err_obj, "@col", rb_iv_get(self, "@last_col"));   // set col from sax parser
-
-        rb_iv_set(err_obj, "@required", rb_ary_new2(0));
-        rb_iv_set(err_obj, "@allowed", rb_ary_new2(0));
-
-        VALUE expected = rb_str_new2("");
-        if (erno & ERBIT_RNV)
-        {
-            if (document->nexp)
-            {
-                int req = 2, i = 0;
-                char *s;
-                while (req--)
-                {
-                    rnx_expected(rnv, document->previous, req);
-                    if (i == rnv->rnx_n_exp)
-                        continue;
-                    if (rnv->rnx_n_exp > document->nexp)
-                        break;
-
-                    expected = rb_str_cat2(expected, (char *)(req ? "required:\n" : "allowed:\n"));
-                    VALUE expected_arr = rb_ary_new2(0);
-
-                    for (; i != rnv->rnx_n_exp; ++i)
-                    {
-                        s = rnx_p2str(rnv, rnv->rnx_exp[i]);
-                        expected = rb_str_cat2(expected, "\t");
-                        expected = rb_str_cat2(expected, s);
-                        expected = rb_str_cat2(expected, "\n");
-                        m_free(s);
-
-                        rb_ary_push(expected_arr, ruby_p2arr(rnv, rnv->rnx_exp[i]));
-                    }
-
-                    if (req)
-                        rb_iv_set(err_obj, "@required", expected_arr);
-                    else
-                        rb_iv_set(err_obj, "@allowed", expected_arr);
-                }
-            }
-        }
-        rb_iv_set(err_obj, "@original_expected", expected);
-
+        VALUE err_obj = ruby_create_error(self, INT2NUM(-1), INT2NUM(-1), erno, format, ap);
+        rb_iv_set(err_obj, "@original_expected", rb_str_new2(""));
         rb_ary_push(errors, err_obj);
     }
     else
     {
-        document->skip_next_error = 0;
+        VALUE r_last_line = rb_iv_get(self, "@last_line");
+        VALUE r_last_col = rb_iv_get(self, "@last_col");
+        int last_line = NUM2INT(r_last_line);
+        int last_col = NUM2INT(r_last_col);
+
+        // only one error per line/col
+        if (document->last_line != last_line || document->last_col != last_col)
+        {
+            document->last_line = last_line;
+            document->last_col = last_col;
+
+            VALUE err_obj = ruby_create_error(self, r_last_line, r_last_col, erno, format, ap);
+
+            VALUE expected = rb_str_new2("");
+
+            if (erno & ERBIT_RNV)
+            {
+                if (document->nexp)
+                {
+                    int req = 2, i = 0;
+                    char *s;
+                    while (req--)
+                    {
+                        rnx_expected(rnv, document->previous, req);
+                        if (i == rnv->rnx_n_exp)
+                            continue;
+                        if (rnv->rnx_n_exp > document->nexp)
+                            break;
+
+                        expected = rb_str_cat2(expected, (char *)(req ? "required:\n" : "allowed:\n"));
+                        VALUE expected_arr = rb_ary_new2(0);
+
+                        for (; i != rnv->rnx_n_exp; ++i)
+                        {
+                            s = rnx_p2str(rnv, rnv->rnx_exp[i]);
+                            expected = rb_str_cat2(expected, "\t");
+                            expected = rb_str_cat2(expected, s);
+                            expected = rb_str_cat2(expected, "\n");
+                            m_free(s);
+
+                            rb_ary_push(expected_arr, ruby_p2arr(rnv, rnv->rnx_exp[i]));
+                        }
+
+                        if (req)
+                            rb_iv_set(err_obj, "@required", expected_arr);
+                        else
+                            rb_iv_set(err_obj, "@allowed", expected_arr);
+                    }
+                }
+            }
+            rb_iv_set(err_obj, "@original_expected", expected);
+
+            rb_ary_push(errors, err_obj);
+        }
     }
 }
