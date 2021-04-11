@@ -1,9 +1,9 @@
-#include "type.h"
-
 /* $Id: rnv.c,v 1.69 2004/01/28 23:21:24 dvd Exp $ */
-
 #include <string.h> /*strncpy,strrchr*/
 #include <assert.h>
+
+#include "type.h"
+
 #include "m.h"
 #include "xmlc.h" /*xmlc_white_space*/
 #include "erbit.h"
@@ -36,16 +36,10 @@ static void error_handler(rnv_t *rnv, int erno,...) {
 
 static void verror_handler_drv(rnv_t *rnv, int erno,va_list ap) {rnv_default_verror_handler(rnv,erno|ERBIT_DRV,ap);}
 
-static void windup(void);
 void rnv_init(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, rx_st_t *rx_st) {
     rnv->rnv_verror_handler=&rnv_default_verror_handler;
     drv_init(rnv, drv_st, rn_st, rx_st);
     rnv->drv_verror_handler=&verror_handler_drv;
-    windup();
-}
-
-void rnv_clear(void) {
-  windup();
 }
 
 void rnv_dispose(rnv_t *rnv) {
@@ -59,9 +53,6 @@ void rnv_dispose(rnv_t *rnv) {
     m_free(rnv->rnx_exp);
 
   m_free(rnv);
-}
-
-static void windup(void) {
 }
 
 static char *qname_open(char **surip,char **snamep,char *name) {

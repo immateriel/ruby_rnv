@@ -17,7 +17,6 @@
 extern void xsd_default_verror_handler(rnv_t *rnv, int erno,va_list ap);
 
 extern void xsd_init(rx_st_t *rx_st);
-extern void xsd_clear(void);
 
 extern int xsd_allows(rx_st_t *rx_st, char *typ,char *ps,char *s,int n);
 extern int xsd_equal(rx_st_t *rx_st, char *typ,char *val,char *s,int n);

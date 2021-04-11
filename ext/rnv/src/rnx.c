@@ -13,13 +13,11 @@
 #define LEN_EXP RNX_LEN_EXP
 #define LIM_EXP RNX_LIM_EXP
 
-void rnx_init(rnv_t *rnv, rnx_st_t *rnx_st) {
-    rnv->rnx_exp=(int*)m_alloc(rnx_st->len_exp=LEN_EXP,sizeof(int));
+void rnx_init(rnv_t *rnv) {
+    rnv->rnx_exp=(int*)m_alloc(rnv->rnx_len_exp=LEN_EXP,sizeof(int));
 }
 
-void rnx_clear(void) {}
-
-static void expected(rnv_t *rnv, rnx_st_t *rnx_st, int p,int first,int req) {
+static void expected(rnv_t *rnv, int p,int first,int req) {
   int p1,p2,px=0,i;
   if(req && rn_nullable(p)) return;
   switch(RN_P_TYP(p)) {
@@ -28,21 +26,21 @@ static void expected(rnv_t *rnv, rnx_st_t *rnx_st, int p,int first,int req) {
   case RN_P_EMPTY: break;
   case RN_P_TEXT: px=p; break;
   case RN_P_CHOICE: rn_Choice(p,p1,p2);
-    expected(rnv, rnx_st, p1,first,req); expected(rnv, rnx_st, p2,first,req); break;
+    expected(rnv, p1,first,req); expected(rnv, p2,first,req); break;
   case RN_P_INTERLEAVE: rn_Interleave(p,p1,p2);
-    expected(rnv, rnx_st, p1,first,req); expected(rnv, rnx_st, p2,first,req); break;
+    expected(rnv, p1,first,req); expected(rnv, p2,first,req); break;
   case RN_P_GROUP: rn_Group(p,p1,p2);
-    expected(rnv, rnx_st, p1,first,req); expected(rnv, rnx_st, p2,first&&rn_nullable(p1),req); break;
-  case RN_P_ONE_OR_MORE: rn_OneOrMore(p,p1); expected(rnv, rnx_st, p1,first,req); break;
-  case RN_P_LIST: rn_List(p,p1); expected(rnv, rnx_st, p1,first,req); break;
+    expected(rnv, p1,first,req); expected(rnv, p2,first&&rn_nullable(p1),req); break;
+  case RN_P_ONE_OR_MORE: rn_OneOrMore(p,p1); expected(rnv, p1,first,req); break;
+  case RN_P_LIST: rn_List(p,p1); expected(rnv, p1,first,req); break;
   case RN_P_DATA: px=p; break;
   case RN_P_DATA_EXCEPT: rn_DataExcept(p,p1,p2);
-    expected(rnv, rnx_st, p1,first,req); break;
+    expected(rnv, p1,first,req); break;
   case RN_P_VALUE: px=p; break;
   case RN_P_ATTRIBUTE: px=p; break;
   case RN_P_ELEMENT: px=p; break;
   case RN_P_AFTER: rn_After(p,p1,p2);
-    expected(rnv, rnx_st, p1,first,req); if(rn_nullable(p1)) px=p; break;
+    expected(rnv, p1,first,req); if(rn_nullable(p1)) px=p; break;
   case RN_P_REF: break;
   default: assert(0);
   }
@@ -51,20 +49,20 @@ static void expected(rnv_t *rnv, rnx_st_t *rnx_st, int p,int first,int req) {
       if(rnv->rnx_exp[i]==px) {px=0; break;}
     }
     if(px) {
-      if(rnv->rnx_n_exp==rnx_st->len_exp) rnv->rnx_exp=(int*)m_stretch(rnv->rnx_exp,rnx_st->len_exp=2*rnv->rnx_n_exp,rnv->rnx_n_exp,sizeof(int));
+      if(rnv->rnx_n_exp==rnv->rnx_len_exp) rnv->rnx_exp=(int*)m_stretch(rnv->rnx_exp,rnv->rnx_len_exp=2*rnv->rnx_n_exp,rnv->rnx_n_exp,sizeof(int));
       rnv->rnx_exp[rnv->rnx_n_exp++]=px;
     }
   }
 }
-void rnx_expected(rnv_t *rnv, rnx_st_t *rnx_st, int p,int req) {
+void rnx_expected(rnv_t *rnv, int p,int req) {
   if(req) {
-    if(rnx_st->len_exp>LIM_EXP) {
+    if(rnv->rnx_len_exp>LIM_EXP) {
       m_free(rnv->rnx_exp);
-      rnv->rnx_exp=(int*)m_alloc(rnx_st->len_exp=LIM_EXP,sizeof(int));
+      rnv->rnx_exp=(int*)m_alloc(rnv->rnx_len_exp=LIM_EXP,sizeof(int));
     }
     rnv->rnx_n_exp=0;
   }
-  expected(rnv, rnx_st, p,1,req);
+  expected(rnv, p,1,req);
 }
 
 char *rnx_p2str(rnv_t *rnv, int p) {

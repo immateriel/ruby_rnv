@@ -14,6 +14,10 @@ else
 
   validator = RNV::Validator.new
   validator.load_schema_from_file(schema)
+  validator.errors.each do |err|
+    puts "#{xml}:#{err.to_s}"
+  end
+
   validator.parse_file(xml)
 
   # result = RubyProf.stop

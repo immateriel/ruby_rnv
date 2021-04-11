@@ -68,7 +68,7 @@ static int mixed = 0;
 static char *xgfile = NULL, *xgpos = NULL;
 
 #define err(msg) (*rnv->verror_handler)(rnv,erno,msg "\n", ap);
-static void verror_handler(rnv_t *rnv, xcl_st_t *xcl_st, rnx_st_t *rnx_st, int erno, va_list ap)
+static void verror_handler(rnv_t *rnv, xcl_st_t *xcl_st, int erno, va_list ap)
 {
   if (erno & ERBIT_RNL)
   {
@@ -94,7 +94,7 @@ static void verror_handler(rnv_t *rnv, xcl_st_t *xcl_st, rnx_st_t *rnx_st, int e
           char *s;
           while (req--)
           {
-            rnx_expected(rnv, rnx_st, xcl_st->previous, req);
+            rnx_expected(rnv,  xcl_st->previous, req);
             if (i == rnv->rnx_n_exp)
               continue;
             if (rnv->rnx_n_exp > xcl_st->nexp)
@@ -129,18 +129,18 @@ static void verror_handler(rnv_t *rnv, xcl_st_t *xcl_st, rnx_st_t *rnx_st, int e
   }
 }
 
-static void verror_handler_rnl(rnv_t *rnv, xcl_st_t *xcl_st, rnx_st_t *rnx_st, int erno, va_list ap) { verror_handler(rnv, xcl_st, rnx_st, erno | ERBIT_RNL, ap); }
-static void verror_handler_rnv(rnv_t *rnv, xcl_st_t *xcl_st, rnx_st_t *rnx_st, int erno, va_list ap) { verror_handler(rnv, xcl_st, rnx_st, erno | ERBIT_RNV, ap); }
+static void verror_handler_rnl(rnv_t *rnv, xcl_st_t *xcl_st, int erno, va_list ap) { verror_handler(rnv, xcl_st,  erno | ERBIT_RNL, ap); }
+static void verror_handler_rnv(rnv_t *rnv, xcl_st_t *xcl_st, int erno, va_list ap) { verror_handler(rnv, xcl_st,  erno | ERBIT_RNV, ap); }
 
 static void windup(xcl_st_t *xcl_st);
-static void init(rnv_t *rnv, xcl_st_t *xcl_st, rn_st_t *rn_st, rnd_st_t *rnd_st, rnc_st_t *rnc_st, rnx_st_t *rnx_st, drv_st_t *drv_st, rx_st_t *rx_st)
+static void init(rnv_t *rnv, xcl_st_t *xcl_st, rn_st_t *rn_st, rnc_st_t *rnc_st, rnd_st_t *rnd_st, drv_st_t *drv_st, rx_st_t *rx_st)
 {
     rnv->verror_handler=&verror_default_handler;
-    rnl_init(rnv, rn_st, rnd_st, rnc_st);
+    rnl_init(rnv, rnc_st, rn_st, rnd_st);
     //rnl_verror_handler = &verror_handler_rnl;
     rnv_init(rnv, drv_st, rn_st, rx_st);
     //rnv_verror_handler = &verror_handler_rnv;
-    rnx_init(rnv, rnx_st);
+    rnx_init(rnv);
     xcl_st->text = (char *)m_alloc(xcl_st->len_txt = LEN_T, sizeof(char));
     windup(xcl_st);
 }
@@ -162,11 +162,11 @@ static void windup(xcl_st_t *xcl_st)
   xcl_st->lastline = xcl_st->lastcol = -1;
 }
 
-static void error_handler(rnv_t *rnv, xcl_st_t *xcl_st, rnx_st_t *rnx_st, int erno, ...)
+static void error_handler(rnv_t *rnv, xcl_st_t *xcl_st, int erno, ...)
 {
   va_list ap;
   va_start(ap, erno);
-  verror_handler(rnv, xcl_st, rnx_st, erno, ap);
+  verror_handler(rnv, xcl_st,  erno, ap);
   va_end(ap);
 }
 
@@ -258,14 +258,14 @@ static void processingInstruction(void *userData,
   }
 }
 
-static int pipeout(rnv_t *rnv, xcl_st_t *xcl_st, rnx_st_t *rnx_st, void *buf, int len)
+static int pipeout(rnv_t *rnv, xcl_st_t *xcl_st, void *buf, int len)
 {
   int ofs = 0, iw, lenw = len;
   for (;;)
   {
     if ((iw = write(1, (char *)buf + ofs, lenw)) == -1)
     {
-      error_handler(rnv, xcl_st, rnx_st, XCL_ER_IO, strerror(errno));
+      error_handler(rnv, xcl_st,  XCL_ER_IO, strerror(errno));
       return 0;
     }
     ofs += iw;
@@ -275,7 +275,7 @@ static int pipeout(rnv_t *rnv, xcl_st_t *xcl_st, rnx_st_t *rnx_st, void *buf, in
   }
 }
 
-static int process(rnv_t *rnv, xcl_st_t *xcl_st, rnx_st_t *rnx_st, int fd)
+static int process(rnv_t *rnv, xcl_st_t *xcl_st, int fd)
 {
   void *buf;
   int len;
@@ -285,11 +285,11 @@ static int process(rnv_t *rnv, xcl_st_t *xcl_st, rnx_st_t *rnx_st, int fd)
     len = read(fd, buf, BUFSIZE);
     if (len < 0)
     {
-      error_handler(rnv, xcl_st, rnx_st, XCL_ER_IO, xcl_st->xml, strerror(errno));
+      error_handler(rnv, xcl_st,  XCL_ER_IO, xcl_st->xml, strerror(errno));
       goto ERROR;
     }
     if (xcl_st->peipe)
-      xcl_st->peipe = xcl_st->peipe && pipeout(rnv, xcl_st, rnx_st, buf, len);
+      xcl_st->peipe = xcl_st->peipe && pipeout(rnv, xcl_st,  buf, len);
     if (!XML_ParseBuffer(expat, len, len == 0))
       goto PARSE_ERROR;
     if (len == 0)
@@ -298,9 +298,9 @@ static int process(rnv_t *rnv, xcl_st_t *xcl_st, rnx_st_t *rnx_st, int fd)
   return xcl_st->ok;
 
 PARSE_ERROR:
-  error_handler(rnv, xcl_st, rnx_st, XCL_ER_XML, XML_ErrorString(XML_GetErrorCode(expat)));
+  error_handler(rnv, xcl_st,  XCL_ER_XML, XML_ErrorString(XML_GetErrorCode(expat)));
   while (xcl_st->peipe && (len = read(fd, buf, BUFSIZE)) != 0)
-    xcl_st->peipe = xcl_st->peipe && pipeout(rnv, xcl_st, rnx_st, buf, len);
+    xcl_st->peipe = xcl_st->peipe && pipeout(rnv, xcl_st,  buf, len);
 ERROR:
   return 0;
 }
@@ -308,11 +308,11 @@ ERROR:
 static int externalEntityRef(XML_Parser p, const char *context,
                              const char *base, const char *systemId, const char *publicId)
 {
-  //error_handler(rnv, xcl_st, rnx_st, XCL_ER_XENT);
+  //error_handler(rnv, xcl_st,  XCL_ER_XENT);
   return 1;
 }
 
-static void validate(rnv_t *rnv, xcl_st_t *xcl_st, drv_st_t *drv_st, rn_st_t *rn_st, rnx_st_t *rnx_st, int fd)
+static void validate(rnv_t *rnv, xcl_st_t *xcl_st, drv_st_t *drv_st, rn_st_t *rn_st, int fd)
 {
   xcl_st->previous = xcl_st->current = xcl_st->start;
   expat = XML_ParserCreateNS(NULL, ':');
@@ -322,7 +322,7 @@ static void validate(rnv_t *rnv, xcl_st_t *xcl_st, drv_st_t *drv_st, rn_st_t *rn
   XML_SetExternalEntityRefHandler(expat, &externalEntityRef);
   XML_SetProcessingInstructionHandler(expat, &processingInstruction);
   XML_SetUserData(expat, xcl_st);
-  xcl_st->ok = process(rnv, xcl_st, rnx_st, fd);
+  xcl_st->ok = process(rnv, xcl_st,  fd);
   XML_ParserFree(expat);
 }
 
@@ -334,7 +334,6 @@ int main(int argc, char **argv)
   rnv_t *rnv;
   rn_st_t *rn_st;
   rnc_st_t *rnc_st;
-  rnx_st_t *rnx_st;
   drv_st_t *drv_st;
   rx_st_t *rx_st;
   rnd_st_t *rnd_st;
@@ -343,7 +342,6 @@ int main(int argc, char **argv)
   rnv = malloc(sizeof(rnv_t));
   rn_st = malloc(sizeof(rn_st_t));
   rnc_st = malloc(sizeof(rnc_st_t));
-  rnx_st = malloc(sizeof(rnx_st_t));
   drv_st = malloc(sizeof(drv_st_t));
   rx_st = malloc(sizeof(rx_st_t));
   rnd_st = malloc(sizeof(rnd_st_t));
@@ -354,7 +352,7 @@ int main(int argc, char **argv)
   xcl_st->rn_st = rn_st;
   xcl_st->rx_st = rx_st;
 
-  init(rnv, xcl_st, rn_st, rnc_st, rnd_st, rnx_st, drv_st, rx_st);
+  init(rnv, xcl_st, rn_st, rnc_st, rnd_st,  drv_st, rx_st);
 
   xcl_st->peipe = 0;
   xcl_st->verbose = 1;
@@ -378,8 +376,8 @@ int main(int argc, char **argv)
           xcl_st->nexp = atoi(*(++argv));
         goto END_OF_OPTIONS;
       case 's':
-        rnv->drv_compact = 1;
-        rnv->rx_compact = 1;
+        drv_st->drv_compact = 1;
+        rx_st->rx_compact = 1;
         break;
       case 'p':
         xcl_st->peipe = 1;
@@ -439,7 +437,7 @@ int main(int argc, char **argv)
         }
         if (xcl_st->verbose)
           (*er_printf)("%s\n", xcl_st->xml);
-        validate(rnv, xcl_st, drv_st, rn_st, rnx_st, fd);
+        validate(rnv, xcl_st, drv_st, rn_st,  fd);
         close(fd);
         clear(xcl_st);
       } while (*(++argv));
@@ -451,7 +449,7 @@ int main(int argc, char **argv)
       if (!xcl_st->rnck)
       {
         xcl_st->xml = "stdin";
-        validate(rnv, xcl_st, drv_st, rn_st, rnx_st, 0);
+        validate(rnv, xcl_st, drv_st, rn_st,  0);
         clear(xcl_st);
         if (!xcl_st->ok && xcl_st->verbose)
           (*er_printf)("error: invalid input\n");
@@ -462,7 +460,6 @@ int main(int argc, char **argv)
   free(rnv);
   free(rn_st);
   free(rnc_st);
-  free(rnx_st);
   free(drv_st);
   free(rx_st);
   free(rnd_st);

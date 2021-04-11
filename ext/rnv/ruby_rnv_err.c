@@ -448,9 +448,6 @@ int ruby_verror_handler(rnv_t *rnv, int erno, char *format, va_list ap)
 
     if (!document->skip_next_error)
     {
-
-        rnx_st_t *rnx_st = document->rnx_st;
-
         VALUE errors = rb_iv_get(self, "@errors");
 
         VALUE err_class = Error;
@@ -487,7 +484,7 @@ int ruby_verror_handler(rnv_t *rnv, int erno, char *format, va_list ap)
                 char *s;
                 while (req--)
                 {
-                    rnx_expected(rnv, rnx_st, document->previous, req);
+                    rnx_expected(rnv, document->previous, req);
                     if (i == rnv->rnx_n_exp)
                         continue;
                     if (rnv->rnx_n_exp > document->nexp)

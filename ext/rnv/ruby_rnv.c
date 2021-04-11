@@ -29,15 +29,9 @@ void document_free(document_t *document)
   rx_dispose(document->rx_st);
   drv_dispose(document->drv_st);
 
-  free(document->rnx_st);
-
   rnc_dispose(document->rnc_st);
 
-  ht_dispose(&document->rn_st->ht_p);
-  ht_dispose(&document->rn_st->ht_nc);
-  ht_dispose(&document->rn_st->ht_s);
-
-  free(document->rn_st);
+  rn_dispose(document->rn_st);
 
   rnv_dispose(document->rnv);
 
@@ -54,7 +48,6 @@ VALUE rb_document_alloc(VALUE klass)
   document->rnv = calloc(1, sizeof(rnv_t));
   document->rn_st = calloc(1, sizeof(rn_st_t));
   document->rnc_st = calloc(1, sizeof(rnc_st_t));
-  document->rnx_st = calloc(1, sizeof(rnx_st_t));
   document->drv_st = calloc(1, sizeof(drv_st_t));
   document->rx_st = calloc(1, sizeof(rx_st_t));
   document->rnd_st = calloc(1, sizeof(rnd_st_t));
@@ -67,9 +60,9 @@ VALUE rb_document_init(VALUE self)
   document_t *document;
   Data_Get_Struct(self, document_t, document);
 
-  rnl_init(document->rnv, document->rn_st, document->rnc_st, document->rnd_st);
+  rnl_init(document->rnv, document->rnc_st, document->rn_st, document->rnd_st);
   rnv_init(document->rnv, document->drv_st, document->rn_st, document->rx_st);
-  rnx_init(document->rnv, document->rnx_st);
+  rnx_init(document->rnv);
 
   document->opened = document->ok = 0;
   document->skip_next_error = 0;
@@ -81,6 +74,9 @@ VALUE rb_document_init(VALUE self)
   rb_iv_set(self, "@errors", rb_ary_new2(0));
 
   rb_iv_set(self, "@libraries", rb_hash_new());
+
+  //document->rx_st->rx_compact = 1;
+  //document->drv_st->drv_compact = 1;
 
   return self;
 }
@@ -171,14 +167,6 @@ VALUE rb_document_valid(VALUE self)
     return Qfalse;
 }
 
-static void flush_text(document_t *document)
-{
-  document->ok = rnv_text(document->rnv, document->drv_st, document->rn_st, document->rx_st,
-                          &document->current, &document->previous, document->text, document->n_txt, document->mixed) &&
-                 document->ok;
-  document->text[document->n_txt = 0] = '\0';
-}
-
 static int rb_dtl_equal(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ, char *val, char *s, int n)
 {
   VALUE self = (VALUE)rnv->user_data;
@@ -234,6 +222,14 @@ VALUE rb_document_add_dtl(VALUE self, VALUE r_ns, VALUE r_cb_obj)
     rb_hash_aset(libraries, INT2FIX(uri), r_cb_obj);
   }
   return Qnil;
+}
+
+static void flush_text(document_t *document)
+{
+  document->ok = rnv_text(document->rnv, document->drv_st, document->rn_st, document->rx_st,
+                          &document->current, &document->previous, document->text, document->n_txt, document->mixed) &&
+                 document->ok;
+  document->text[document->n_txt = 0] = '\0';
 }
 
 /*

@@ -2,7 +2,7 @@ require 'rnv'
 require 'minitest/autorun'
 
 class TestSuite < Minitest::Test
-  @@failing = %w[test_016 test_150 test_160 test_176 test_194 test_509 test_523 test_533] +
+  @@failing = %w[test_150 test_160 test_509 test_523 test_533] +
     %w[test_tok_legal_ident_001 test_tok_illegal_cname_002 test_tok_legal_cname_005 test_tok_legal_ident_009
        test_tok_legal_lit_011 test_tok_legal_ident_006 test_tok_illegal_cname_006 test_tok_legal_cname_001
        test_tok_illegal_esc_005 test_tok_legal_cname_004 test_tok_legal_ident_003 test_tok_illegal_cname_008
@@ -11,10 +11,9 @@ class TestSuite < Minitest::Test
        test_tok_illegal_esc_002 test_tok_legal_ident_005 test_tok_legal_ident_008 test_tok_illegal_esc_003
        test_tok_legal_comm_010 test_tok_legal_cname_003 test_tok_illegal_esc_004 test_tok_illegal_cname_007
        test_tok_legal_lit_009]
-
   # James Clark's test suite
   # FIXME : unsupported include
-  # trang : 8 failures/1768, rng with unresolved include are not converted
+  # trang : 5 failures/1768, rng with unresolved include are not converted
   # xslt : 69 failures/1762
   Dir.glob("test/fixtures/*.rnc").select { |f| !f.include?("_resource") }.each do |rnc|
     num = rnc.sub(/[^0-9]*([0-9]+)[^0-9]*/, '\1')

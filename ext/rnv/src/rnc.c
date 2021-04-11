@@ -1,13 +1,12 @@
-#include "type.h"
-
 /* $Id: rnc.c,v 1.74 2004/08/18 19:10:51 dvd Exp $ */
-
 #include <fcntl.h> /* open, close */
 #include <sys/types.h>
 #include <unistd.h> /* open,read,close */
 #include <string.h> /* memcpy,strlen,strcpy,strcat */
 #include <errno.h> /*errno*/
 #include <assert.h> /*assert*/
+
+#include "type.h"
 
 #include "u.h"
 #include "xmlc.h"
@@ -201,10 +200,8 @@ int rnc_errors(struct rnc_source *sp) {
 #define DE_CHOICE 8
 #define DE_ILEAVE 16
 
-void rnc_init(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st) {
-    memset(rnc_st, 0, sizeof(rnc_st_t));
+void rnc_init(rnv_t *rnv, rnc_st_t *rnc_st) {
     rnv->rnc_verror_handler=&rnc_default_verror_handler;
-    //rn_init(rnv, rn_st);
     rnc_st->len_p=LEN_P; rnc_st->path=(char*)m_alloc(rnc_st->len_p,sizeof(char));
     /* initialize scopes */
     sc_init(&rnc_st->nss); sc_init(&rnc_st->dts); sc_init(&rnc_st->defs); sc_init(&rnc_st->refs); sc_init(&rnc_st->prefs);
@@ -222,8 +219,6 @@ void rnc_dispose(rnc_st_t *rnc_st) {
 
   m_free(rnc_st);
 }
-
-void rnc_clear(void) {}
 
 static void error(int force,struct rnc_source *sp,int erno,...) {
   if(force || sp->line != sp->prevline) {

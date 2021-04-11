@@ -1,5 +1,3 @@
-#include "type.h"
-
 /* $Id: xsd.c,v 1.47 2005/01/06 21:04:06 dvd Exp $ */
 
 #include <limits.h> /*INT_MAX*/
@@ -7,6 +5,9 @@
 #include <string.h> /*strlen*/
 #include <math.h> /*HUGE_VAL*/
 #include <assert.h>
+
+#include "type.h"
+
 #include "u.h"
 #include "xmlc.h"
 #include "s.h"
@@ -41,19 +42,10 @@ static void error_handler(rx_st_t *rx_st, int erno,...) {
 
 static void verror_handler_rx(rnv_t *rnv, int erno,va_list ap) {xsd_default_verror_handler(rnv,erno|ERBIT_RX,ap);}
 
-static void windup(void);
 void xsd_init(rx_st_t *rx_st) {
     rx_st->rnv->xsd_verror_handler = &xsd_default_verror_handler;
     rx_init(rx_st);
     rx_st->rnv->rx_verror_handler=&verror_handler_rx;
-    windup();
-}
-
-void xsd_clear(void) {
-  windup();
-}
-
-static void windup(void) {
 }
 
 #define FCT_ENUMERATION 0
@@ -81,7 +73,7 @@ static char *fcttab[NFCT]={
 #define WS_REPLACE 1
 #define WS_COLLAPSE 2
 
-static int (*match[])(rnv_t *rnv, rx_st_t *rx_st, char *r,char *s,int n)={&rx_match, &rx_rmatch,&rx_cmatch};
+static int (*match[])(rx_st_t *rx_st, char *r,char *s,int n)={&rx_match, &rx_rmatch,&rx_cmatch};
 
 #define TYP_ENTITIES 0
 #define TYP_ENTITY 1
@@ -661,7 +653,7 @@ int xsd_allows(rx_st_t *rx_st, char *typ,char *ps,char *s,int n) {
   default: assert(0);
   }
 
-  while(fct.npat--) ok=ok&&match[fct.whiteSpace](rx_st->rnv, rx_st, fct.pattern[fct.npat],s,n);
+  while(fct.npat--) ok=ok&&match[fct.whiteSpace](rx_st, fct.pattern[fct.npat],s,n);
 
   if(fct.set&(1<<FCT_LENGTH)) ok=ok&&length==fct.length;
   if(fct.set&(1<<FCT_MAX_LENGTH)) ok=ok&&length<=fct.maxLength;

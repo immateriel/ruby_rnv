@@ -142,7 +142,7 @@ extern void rn_add_psval(rnv_t *rnv, rn_st_t *rn_st, char *s);
 extern void rn_end_ps(rnv_t *rnv, rn_st_t *rn_st);
 
 extern void rn_init(rnv_t *rnv, rn_st_t *rn_st);
-extern void rn_clear(rnv_t *rnv, rn_st_t *rn_st);
+extern void rn_dispose(rn_st_t *rn_st);
 
 extern void rn_compress(rnv_t *rnv, rn_st_t *rn_st, int *starts,int n);
 extern int rn_compress_last(rnv_t *rnv, rn_st_t *rn_st, int start);

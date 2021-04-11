@@ -17,7 +17,7 @@
 
 extern void rnd_default_verror_handler(rnv_t *rnv, int erno,va_list ap);
 
-extern void rnd_init(rnv_t *rnv, rnd_st_t *rnd_st, rn_st_t *rn_st);
+extern void rnd_init(rnv_t *rnv, rnd_st_t *rnd_st);
 extern void rnd_clear(void);
 extern void rnd_dispose(rnd_st_t *rnd_st);
 

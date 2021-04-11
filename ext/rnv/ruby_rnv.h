@@ -52,7 +52,6 @@ typedef struct document
   rnv_t *rnv;
   rn_st_t *rn_st;
   rnc_st_t *rnc_st;
-  rnx_st_t *rnx_st;
   drv_st_t *drv_st;
   rx_st_t *rx_st;
   rnd_st_t *rnd_st;

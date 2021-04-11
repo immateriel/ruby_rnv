@@ -1,6 +1,5 @@
-#include "type.h"
-
 /* $Id: drv.c,v 1.41 2004/03/13 13:28:02 dvd Exp $ */
+#include "type.h"
 
 #include "xmlc.h" /*xmlc_white_space*/
 #include "m.h"
@@ -46,8 +45,8 @@ static void error_handler(rnv_t *rnv,int erno,...) {
 
 static void verror_handler_xsd(rnv_t *rnv, int erno,va_list ap) {drv_default_verror_handler(rnv,erno|ERBIT_XSD,ap);}
 
-static void new_memo(rnv_t *rnv, drv_st_t *drv_st, int typ) {
-  if(rnv->drv_compact) ht_deli(&drv_st->ht_m,drv_st->i_m);
+static void new_memo(drv_st_t *drv_st, int typ) {
+  if(drv_st->drv_compact) ht_deli(&drv_st->ht_m,drv_st->i_m);
   drv_st->memo[drv_st->i_m][0]=typ;
 }
 
@@ -62,47 +61,47 @@ static int hash_m(void *user, int m) {
   return ((me[0]&0x7)|((me[1]^me[2]^me[3])<<3))*PRIME_M;
 }
 
-static int newStartTagOpen(rnv_t *rnv, drv_st_t *drv_st, int p,int uri,int name) {
+static int newStartTagOpen(drv_st_t *drv_st, int p,int uri,int name) {
   int *me=drv_st->memo[drv_st->i_m];
-  new_memo(rnv, drv_st, M_STO);
+  new_memo(drv_st, M_STO);
   me[1]=p; me[2]=uri; me[3]=name;
   return ht_get(&drv_st->ht_m,drv_st->i_m);
 }
 
-static int newAttributeOpen(rnv_t *rnv, drv_st_t *drv_st, int p,int uri,int name) {
+static int newAttributeOpen(drv_st_t *drv_st, int p,int uri,int name) {
   int *me=drv_st->memo[drv_st->i_m];
-  new_memo(rnv, drv_st, M_ATT);
+  new_memo(drv_st, M_ATT);
   me[1]=p; me[2]=uri; me[3]=name;
   return ht_get(&drv_st->ht_m,drv_st->i_m);
 }
 
-static int newStartTagClose(rnv_t *rnv, drv_st_t *drv_st, int p) {
+static int newStartTagClose(drv_st_t *drv_st, int p) {
   int *me=drv_st->memo[drv_st->i_m];
-  new_memo(rnv, drv_st, M_STC);
+  new_memo(drv_st, M_STC);
   me[1]=p; me[2]=me[3]=0;
   return ht_get(&drv_st->ht_m,drv_st->i_m);
 }
 
-static int newMixedText(rnv_t *rnv, drv_st_t *drv_st, int p) {
+static int newMixedText(drv_st_t *drv_st, int p) {
   int *me=drv_st->memo[drv_st->i_m];
-  new_memo(rnv, drv_st, M_TXT);
+  new_memo(drv_st, M_TXT);
   me[1]=p; me[2]=me[3]=0;
   return ht_get(&drv_st->ht_m,drv_st->i_m);
 }
 
-static int newEndTag(rnv_t *rnv, drv_st_t *drv_st, int p) {
+static int newEndTag(drv_st_t *drv_st, int p) {
   int *me=drv_st->memo[drv_st->i_m];
-  new_memo(rnv, drv_st, M_END);
+  new_memo(drv_st, M_END);
   me[1]=p; me[2]=me[3]=0;
   return ht_get(&drv_st->ht_m,drv_st->i_m);
 }
 
-static void accept_m(rnv_t *rnv, drv_st_t *drv_st) {
+static void accept_m(drv_st_t *drv_st) {
   if(ht_get(&drv_st->ht_m,drv_st->i_m)!=-1) {
-    if(rnv->drv_compact) ht_del(&drv_st->ht_m,drv_st->i_m); else return;
+    if(drv_st->drv_compact) ht_del(&drv_st->ht_m,drv_st->i_m); else return;
   }
   ht_put(&drv_st->ht_m,drv_st->i_m++);
-  if(rnv->drv_compact&&drv_st->i_m==LIM_M) drv_st->i_m=0;
+  if(drv_st->drv_compact&&drv_st->i_m==LIM_M) drv_st->i_m=0;
   if(drv_st->i_m==drv_st->len_m) drv_st->memo=(int(*)[M_SIZE])m_stretch(drv_st->memo,drv_st->len_m=2*drv_st->i_m,drv_st->i_m,sizeof(int[M_SIZE]));
 }
 
@@ -119,11 +118,16 @@ static int builtin_equal(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, ch
 
 static int builtin_allows(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ,char *ps,char *s,int n) {return 1;}
 
-static void windup(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st);
+static int emb_xsd_allows(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ,char *ps,char *s,int n) {
+  return xsd_allows(rx_st, typ,ps,s,n);
+}
+
+static int emb_xsd_equal(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ,char *val,char *s,int n) {
+  return xsd_equal(rx_st, typ,val,s,n);
+}
 
 void drv_init(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, rx_st_t *rx_st) {
     rnv->drv_verror_handler=&drv_default_verror_handler;
-    //rn_init(rnv, rn_st);
     rx_st->rnv = rnv;
     xsd_init(rx_st);
     rnv->xsd_verror_handler=&verror_handler_xsd;
@@ -131,7 +135,11 @@ void drv_init(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, rx_st_t *rx_st) {
     drv_st->dtl=(struct dtl*)m_alloc(drv_st->len_dtl=LEN_DTL,sizeof(struct dtl));
     drv_st->ht_m.user = drv_st;
     ht_init(&drv_st->ht_m,LEN_M,&hash_m,&equal_m);
-    windup(rnv, drv_st, rn_st);
+
+    drv_st->i_m=0; drv_st->n_dtl=0;
+    drv_add_dtl(rnv, drv_st, rn_st, rnv->rn_string+0,&fallback_equal,&fallback_allows); /* guard at 0 */
+    drv_add_dtl(rnv, drv_st, rn_st, rnv->rn_string+0,&builtin_equal,&builtin_allows);
+    drv_add_dtl(rnv, drv_st, rn_st, rnv->rn_string+rnv->rn_xsd_uri,&emb_xsd_equal,&emb_xsd_allows);
 }
 
 void drv_dispose(drv_st_t *drv_st) {
@@ -141,26 +149,6 @@ void drv_dispose(drv_st_t *drv_st) {
     m_free(drv_st->dtl);
   ht_dispose(&drv_st->ht_m);
   m_free(drv_st);
-}
-
-static int emb_xsd_allows(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ,char *ps,char *s,int n) {
-  return xsd_allows(rx_st, typ,ps,s,n);
-}
-
-static int emb_xsd_equal(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, char *typ,char *val,char *s,int n) {
-  return xsd_equal(rx_st, typ,val,s,n);
-}
-
-static void windup(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st) {
-  drv_st->i_m=0; drv_st->n_dtl=0;
-  drv_add_dtl(rnv, drv_st, rn_st, rnv->rn_string+0,&fallback_equal,&fallback_allows); /* guard at 0 */
-  drv_add_dtl(rnv, drv_st, rn_st, rnv->rn_string+0,&builtin_equal,&builtin_allows);
-  drv_add_dtl(rnv, drv_st, rn_st, rnv->rn_string+rnv->rn_xsd_uri,&emb_xsd_equal,&emb_xsd_allows);
-}
-
-void drv_clear(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st) {
-  ht_clear(&drv_st->ht_m);
-  windup(rnv, drv_st, rn_st);
 }
 
 void drv_add_dtl(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, char *suri,
@@ -212,7 +200,7 @@ static int apply_after(rnv_t *rnv, rn_st_t *rn_st, int (*f)(rnv_t *rnv, rn_st_t 
 static int start_tag_open(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, int p,int uri,int name,int recover) {
   int nc,p1,p2,m,ret=0;
   if(!recover) {
-    m=newStartTagOpen(rnv, drv_st, p,uri,name);
+    m=newStartTagOpen(drv_st, p,uri,name);
     if(m!=-1) return M_RET(m);
   }
   switch(RN_P_TYP(p)) {
@@ -245,8 +233,8 @@ static int start_tag_open(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, int p,in
   default: assert(0);
   }
   if(!recover) {
-    newStartTagOpen(rnv, drv_st, p,uri,name); M_SET(ret);
-    accept_m(rnv, drv_st);
+    newStartTagOpen(drv_st, p,uri,name); M_SET(ret);
+    accept_m(drv_st);
   }
   return ret;
 }
@@ -258,7 +246,7 @@ static int puorg_rn(rnv_t *rnv, rn_st_t *rn_st, int p2,int p1) {return rn_group(
 
 static int attribute_open(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, int p,int uri,int name) {
   int nc,p1,p2,m,ret=0;
-  m=newAttributeOpen(rnv, drv_st, p,uri,name);
+  m=newAttributeOpen(drv_st, p,uri,name);
   if(m!=-1) return M_RET(m);
   switch(RN_P_TYP(p)) {
   case RN_P_NOT_ALLOWED: case RN_P_EMPTY: case RN_P_TEXT:
@@ -290,8 +278,8 @@ static int attribute_open(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, int p,in
     break;
   default: assert(0);
   }
-  newAttributeOpen(rnv, drv_st, p,uri,name); M_SET(ret);
-  accept_m(rnv, drv_st);
+  newAttributeOpen(drv_st, p,uri,name); M_SET(ret);
+  accept_m(drv_st);
   return ret;
 }
 
@@ -304,7 +292,7 @@ extern int drv_attribute_close_recover(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn
 static int start_tag_close(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, int p,int recover) {
   int p1,p2,ret=0,m;
   if(!recover) {
-    m=newStartTagClose(rnv, drv_st, p);
+    m=newStartTagClose(drv_st, p);
     if(m!=-1) return M_RET(m);
   }
   switch(RN_P_TYP(p)) {
@@ -334,8 +322,8 @@ static int start_tag_close(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, int p,i
   default: assert(0);
   }
   if(!recover) {
-    newStartTagClose(rnv, drv_st, p); M_SET(ret);
-    accept_m(rnv, drv_st);
+    newStartTagClose(drv_st, p); M_SET(ret);
+    accept_m(drv_st);
   }
   return ret;
 }
@@ -410,7 +398,7 @@ int drv_text_recover(int p,char *s,int n) {return p;}
 
 static int mixed_text(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, int p) { /* matches text in mixed context */
   int p1,p2,ret=0,m;
-  m=newMixedText(rnv, drv_st, p);
+  m=newMixedText(drv_st, p);
   if(m!=-1) return M_RET(m);
   switch(RN_P_TYP(p)) {
   case RN_P_NOT_ALLOWED: case RN_P_EMPTY:
@@ -439,8 +427,8 @@ static int mixed_text(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, int p) { /* 
     break;
   default: assert(0);
   }
-  newMixedText(rnv, drv_st, p); M_SET(ret);
-  accept_m(rnv, drv_st);
+  newMixedText(drv_st, p); M_SET(ret);
+  accept_m(drv_st);
   return ret;
 }
 int drv_mixed_text(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, int p) {return mixed_text(rnv, drv_st, rn_st, p);}
@@ -449,7 +437,7 @@ int drv_mixed_text_recover(int p) {return p;}
 static int end_tag(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, int p,int recover) {
   int p1,p2,ret=0,m;
   if(!recover) {
-    m=newEndTag(rnv, drv_st, p);
+    m=newEndTag(drv_st, p);
     if(m!=-1) return M_RET(m);
   }
   switch(RN_P_TYP(p)) {
@@ -468,8 +456,8 @@ static int end_tag(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, int p,int recov
   default: assert(0);
   }
   if(!recover) {
-    newEndTag(rnv, drv_st, p); M_SET(ret);
-    accept_m(rnv, drv_st);
+    newEndTag(drv_st, p); M_SET(ret);
+    accept_m(drv_st);
   }
   return ret;
 }

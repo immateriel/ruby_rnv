@@ -1,8 +1,9 @@
-#include "type.h"
-
 /* $Id: rn.c,v 1.62 2004/03/13 14:12:11 dvd Exp $ */
 
 #include <string.h> /* strcmp,strlen,strcpy*/
+
+#include "type.h"
+
 #include "m.h"
 #include "s.h" /* s_hval */
 #include "ht.h"
@@ -276,10 +277,7 @@ static int equal_p(void *user, int p1,int p2);
 static int equal_nc(void *user, int nc1,int nc2);
 static int equal_s(void *user, int s1,int s2);
 
-static void windup(rnv_t *rnv, rn_st_t *rn_st);
-
 void rn_init(rnv_t *rnv, rn_st_t *rn_st) {
-    memset(rn_st, 0, sizeof(rn_st_t));
     rnv->rn_pattern=(int *)m_alloc(rn_st->len_p=P_AVG_SIZE*LEN_P,sizeof(int));
     rnv->rn_nameclass=(int *)m_alloc(rn_st->len_nc=NC_AVG_SIZE*LEN_NC,sizeof(int));
     rnv->rn_string=(char*)m_alloc(rn_st->len_s=S_AVG_SIZE*LEN_S,sizeof(char));
@@ -289,27 +287,27 @@ void rn_init(rnv_t *rnv, rn_st_t *rn_st) {
     ht_init(&rn_st->ht_p,LEN_P,&hash_p,&equal_p);
     ht_init(&rn_st->ht_nc,LEN_NC,&hash_nc,&equal_nc);
     ht_init(&rn_st->ht_s,LEN_S,&hash_s,&equal_s);
-    windup(rnv, rn_st);
+
+    rn_st->i_p=rn_st->i_nc=rn_st->i_s=0;
+    rn_st->adding_ps=0;
+    rnv->rn_pattern[0]=RN_P_ERROR;  accept_p(rnv, rn_st);
+    rnv->rn_nameclass[0]=RN_NC_ERROR; accept_nc(rnv, rn_st);
+    rn_newString(rnv, rn_st, "");
+    rnv->rn_notAllowed=rn_newNotAllowed(rnv, rn_st); 
+    rnv->rn_empty=rn_newEmpty(rnv, rn_st); 
+    rnv->rn_text=rn_newText(rnv, rn_st); 
+    rn_st->BASE_P=rn_st->i_p;
+    rnv->rn_dt_string=rn_newDatatype(rnv, rn_st, 0,rn_newString(rnv, rn_st, "string")); 
+    rnv->rn_dt_token=rn_newDatatype(rnv, rn_st, 0,rn_newString(rnv, rn_st, "token"));
+    rnv->rn_xsd_uri=rn_newString(rnv, rn_st, "http://www.w3.org/2001/XMLSchema-datatypes");
 }
 
-void rn_clear(rnv_t *rnv, rn_st_t *rn_st) {
-  ht_clear(&rn_st->ht_p); ht_clear(&rn_st->ht_nc); ht_clear(&rn_st->ht_s);
-  windup(rnv, rn_st);
-}
+void rn_dispose(rn_st_t *rn_st) {
+  ht_dispose(&rn_st->ht_p);
+  ht_dispose(&rn_st->ht_nc);
+  ht_dispose(&rn_st->ht_s);
 
-static void windup(rnv_t *rnv, rn_st_t *rn_st) {
-  rn_st->i_p=rn_st->i_nc=rn_st->i_s=0;
-  rn_st->adding_ps=0;
-  rnv->rn_pattern[0]=RN_P_ERROR;  accept_p(rnv, rn_st);
-  rnv->rn_nameclass[0]=RN_NC_ERROR; accept_nc(rnv, rn_st);
-  rn_newString(rnv, rn_st, "");
-  rnv->rn_notAllowed=rn_newNotAllowed(rnv, rn_st); 
-  rnv->rn_empty=rn_newEmpty(rnv, rn_st); 
-  rnv->rn_text=rn_newText(rnv, rn_st); 
-  rn_st->BASE_P=rn_st->i_p;
-  rnv->rn_dt_string=rn_newDatatype(rnv, rn_st, 0,rn_newString(rnv, rn_st, "string")); 
-  rnv->rn_dt_token=rn_newDatatype(rnv, rn_st, 0,rn_newString(rnv, rn_st, "token"));
-  rnv->rn_xsd_uri=rn_newString(rnv, rn_st, "http://www.w3.org/2001/XMLSchema-datatypes");
+  m_free(rn_st);
 }
 
 static int hash_p(void *user, int p) {

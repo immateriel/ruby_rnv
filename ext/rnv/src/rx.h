@@ -19,9 +19,6 @@
 #define RX_ER_DNUOB 10
 #define RX_ER_NOTRC 11
 
-//extern void (*rx_verror_handler)(int erno,va_list ap);
-//extern int rx_compact;
-
 extern void rx_default_verror_handler(rnv_t *rnv, int erno,va_list ap);
 
 extern void rx_init(rx_st_t *rx_st);
@@ -30,7 +27,7 @@ extern void rx_clear(rx_st_t *rx_st);
 extern void rx_dispose(rx_st_t *rx_st);
 
 /* just compiles the expression to check the syntax */
-extern int rx_check(rnv_t *rnv, rx_st_t *rx_st, char *rx);
+extern int rx_check(rx_st_t *rx_st, char *rx);
 
 /*
  returns positive value if the s[0..n] ~= rx, 0 if not, -1 on regex error;
@@ -38,8 +35,8 @@ extern int rx_check(rnv_t *rnv, rx_st_t *rx_st, char *rx);
  rmatch replaces white space in s with 0x20,
  cmatch collapses white space.
  */
-extern int rx_match(rnv_t *rnv, rx_st_t *rx_st, char *rx,char *s,int n);
-extern int rx_rmatch(rnv_t *rnv, rx_st_t *rx_st, char *rx,char *s,int n);
-extern int rx_cmatch(rnv_t *rnv, rx_st_t *rx_st, char *rx,char *s,int n);
+extern int rx_match(rx_st_t *rx_st, char *rx,char *s,int n);
+extern int rx_rmatch(rx_st_t *rx_st, char *rx,char *s,int n);
+extern int rx_cmatch(rx_st_t *rx_st, char *rx,char *s,int n);
 
 #endif

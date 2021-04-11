@@ -1,9 +1,10 @@
-#include "type.h"
-
 /* $Id: rx.c,v 1.33 2004/02/25 00:00:32 dvd Exp $ */
 
 #include <string.h> /*strlen,strcpy,strcmp*/
 #include <assert.h>
+
+#include "type.h"
+
 #include "u.h" /*u_get,u_strlen*/
 #include "xmlc.h"
 #include "m.h"
@@ -186,9 +187,9 @@ static int add_r(rx_st_t *rx_st, char *rx) {
 
 #define ERRPOS
 
-#define err(msg) (*rnv->verror_handler)(rnv,erno|ERBIT_RX,msg" in \"%s\" at offset %i\n",ap)
+#define err(msg) (*rnv->verror_handler)(rnv,erno|ERBIT_RX,"regular expressions: "msg" in \"%s\" at offset %i\n",ap)
 void rx_default_verror_handler(rnv_t *rnv, int erno,va_list ap) {
-  (*er_printf)("regular expressions: ");
+  //(*er_printf)("regular expressions: ");
   switch(erno) {
   case RX_ER_BADCH: err("bad character"); break;
   case RX_ER_UNFIN: err("unfinished expression"); break;
@@ -205,8 +206,6 @@ void rx_default_verror_handler(rnv_t *rnv, int erno,va_list ap) {
   default: assert(0);
   }
 }
-
-//void (*rx_verror_handler)(int erno,va_list ap)=&rx_default_verror_handler;
 
 static void error_handler(rx_st_t *rx_st,int erno,...) {
   va_list ap; va_start(ap,erno); (*rx_st->rnv->rx_verror_handler)(rx_st->rnv, erno,ap); va_end(ap);
@@ -248,26 +247,24 @@ static void accept_m(rx_st_t *rx_st) {
 
 static void windup(rx_st_t *rx_st);
 void rx_init(rx_st_t *rx_st) {
-    // memset(rx_st, 0, sizeof(rx_st_t));
+  rx_st->rnv->rx_verror_handler=&rx_default_verror_handler;
 
-    rx_st->rnv->rx_verror_handler=&rx_default_verror_handler;
+  rx_st->pattern=(int *)m_alloc(rx_st->len_p=P_AVG_SIZE*LEN_P,sizeof(int));
+  rx_st->r2p=(int (*)[2])m_alloc(rx_st->len_2=LEN_2,sizeof(int[2]));
+  rx_st->regex=(char*)m_alloc(rx_st->len_r=R_AVG_SIZE*LEN_R,sizeof(char));
+  rx_st->memo=(int (*)[M_SIZE])m_alloc(rx_st->len_m=LEN_M,sizeof(int[M_SIZE]));
 
-    rx_st->pattern=(int *)m_alloc(rx_st->len_p=P_AVG_SIZE*LEN_P,sizeof(int));
-    rx_st->r2p=(int (*)[2])m_alloc(rx_st->len_2=LEN_2,sizeof(int[2]));
-    rx_st->regex=(char*)m_alloc(rx_st->len_r=R_AVG_SIZE*LEN_R,sizeof(char));
-    rx_st->memo=(int (*)[M_SIZE])m_alloc(rx_st->len_m=LEN_M,sizeof(int[M_SIZE]));
+  rx_st->ht_p.user = rx_st;
+  rx_st->ht_2.user = rx_st;
+  rx_st->ht_r.user = rx_st;
+  rx_st->ht_m.user = rx_st;
 
-    rx_st->ht_p.user = rx_st;
-    rx_st->ht_2.user = rx_st;
-    rx_st->ht_r.user = rx_st;
-    rx_st->ht_m.user = rx_st;
+  ht_init(&rx_st->ht_p,LEN_P,&hash_p,&equal_p);
+  ht_init(&rx_st->ht_2,LEN_2,&hash_2,&equal_2);
+  ht_init(&rx_st->ht_r,LEN_R,&hash_r,&equal_r);
+  ht_init(&rx_st->ht_m,LEN_M,&hash_m,&equal_m);
 
-    ht_init(&rx_st->ht_p,LEN_P,&hash_p,&equal_p);
-    ht_init(&rx_st->ht_2,LEN_2,&hash_2,&equal_2);
-    ht_init(&rx_st->ht_r,LEN_R,&hash_r,&equal_r);
-    ht_init(&rx_st->ht_m,LEN_M,&hash_m,&equal_m);
-
-    windup(rx_st);
+  windup(rx_st);
 }
 
 void rx_dispose(rx_st_t *rx_st) {
@@ -519,11 +516,11 @@ static void bind(rx_st_t *rx_st, int r) {
   getsym(rx_st);
 }
 
-static int compile(rnv_t *rnv, rx_st_t *rx_st, char *rx) {
+static int compile(rx_st_t *rx_st, char *rx) {
   int r=0,p=0,d_r;
   d_r=add_r(rx_st, rx);
   if((r=ht_get(&rx_st->ht_r,rx_st->i_r))==-1) {
-    if(rnv->rx_compact&&rx_st->i_p>=P_AVG_SIZE*LIM_P) {rx_clear(rx_st); d_r=add_r(rx_st, rx);}
+    if(rx_st->rx_compact&&rx_st->i_p>=P_AVG_SIZE*LIM_P) {rx_clear(rx_st); d_r=add_r(rx_st, rx);}
     ht_put(&rx_st->ht_r,r=rx_st->i_r);
     rx_st->i_r+=d_r;
     bind(rx_st, r); p=expression(rx_st); if(rx_st->sym!=SYM_END) error(rx_st, RX_ER_BADCH);
@@ -703,10 +700,10 @@ static int drv(rx_st_t *rx_st, int p,int c) {
   return ret;
 }
 
-int rx_check(rnv_t *rnv, rx_st_t *rx_st, char *rx) {(void)compile(rnv, rx_st, rx); return !rx_st->errors;}
+int rx_check(rx_st_t *rx_st, char *rx) {(void)compile(rx_st, rx); return !rx_st->errors;}
 
-int rx_match(rnv_t *rnv, rx_st_t *rx_st, char *rx,char *s,int n) {
-  int p=compile(rnv, rx_st, rx);
+int rx_match(rx_st_t *rx_st, char *rx,char *s,int n) {
+  int p=compile(rx_st, rx);
   if(!rx_st->errors) {
     char *end=s+n;
     int u;
@@ -719,8 +716,8 @@ int rx_match(rnv_t *rnv, rx_st_t *rx_st, char *rx,char *s,int n) {
   } else return 0;
 }
 
-int rx_rmatch(rnv_t *rnv, rx_st_t *rx_st, char *rx,char *s,int n) {
-  int p=compile(rnv, rx_st, rx);
+int rx_rmatch(rx_st_t *rx_st, char *rx,char *s,int n) {
+  int p=compile(rx_st, rx);
   if(!rx_st->errors) {
     char *end=s+n;
     int u;
@@ -734,8 +731,8 @@ int rx_rmatch(rnv_t *rnv, rx_st_t *rx_st, char *rx,char *s,int n) {
   } else return 0;
 }
 
-int rx_cmatch(rnv_t *rnv, rx_st_t *rx_st, char *rx,char *s,int n) {
-  int p=compile(rnv, rx_st, rx);
+int rx_cmatch(rx_st_t *rx_st, char *rx,char *s,int n) {
+  int p=compile(rx_st, rx);
   if(!rx_st->errors) {
     char *end=s+n;
     int u;

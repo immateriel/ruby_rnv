@@ -1,10 +1,10 @@
-#include "type.h"
-
 /* $Id: rnd.c,v 1.33 2004/02/25 00:00:32 dvd Exp $ */
-
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+
+#include "type.h"
+
 #include "m.h"
 #include "rn.h"
 #include "rnx.h"
@@ -30,10 +30,8 @@ void rnd_default_verror_handler(rnv_t *rnv, int erno,va_list ap) {
   }
 }
 
-void rnd_init(rnv_t *rnv, rnd_st_t *rnd_st, rn_st_t *rn_st) {
-    memset(rnd_st, 0, sizeof(rnd_st_t));
+void rnd_init(rnv_t *rnv, rnd_st_t *rnd_st) {
     rnv->rnd_verror_handler=&rnd_default_verror_handler;
-    //rn_init(rnv, rn_st);
 }
 
 void rnd_dispose(rnd_st_t *rnd_st) {

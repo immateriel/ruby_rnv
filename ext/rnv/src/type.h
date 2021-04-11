@@ -22,6 +22,17 @@ typedef struct rn_st
   int adding_ps;
 } rn_st_t;
 
+typedef struct rnc_st
+{
+  int len_p;
+  char *path;
+  struct sc_stack nss;
+  struct sc_stack dts;
+  struct sc_stack defs;
+  struct sc_stack refs;
+  struct sc_stack prefs;
+} rnc_st_t;
+
 typedef struct rnd_st
 {
   int len_f;
@@ -58,25 +69,12 @@ typedef struct rx_st
   int (*memo)[3];
   int (*r2p)[2];
 
+  int rx_compact;
+
   // FIXME: for error handlers
   rnv_t *rnv;
+
 } rx_st_t;
-
-typedef struct rnx_st
-{
-  int len_exp;
-} rnx_st_t;
-
-typedef struct rnc_st
-{
-  int len_p;
-  char *path;
-  struct sc_stack nss;
-  struct sc_stack dts;
-  struct sc_stack defs;
-  struct sc_stack refs;
-  struct sc_stack prefs;
-} rnc_st_t;
 
 typedef struct drv_st
 {
@@ -87,6 +85,8 @@ typedef struct drv_st
   int len_m;
   struct hashtable ht_m;
   int (*memo)[5];
+
+  int drv_compact;
 } drv_st_t;
 
 typedef struct rnv
@@ -100,12 +100,13 @@ typedef struct rnv
   int rn_dt_string;
   int rn_dt_token;
   int rn_xsd_uri;
-  int rx_compact;
+
   int rnx_n_exp;
   int *rnx_exp;
-  int drv_compact;
+  int rnx_len_exp;
 
   int (*verror_handler)(rnv_t *rnv, int erno, char *format,va_list ap);
+
   void (*drv_verror_handler)(rnv_t *rnv, int erno, va_list ap);
   void (*rnc_verror_handler)(rnv_t *rnv, int erno, va_list ap);
   void (*rnd_verror_handler)(rnv_t *rnv, int erno, va_list ap);

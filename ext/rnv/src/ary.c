@@ -1,6 +1,5 @@
-#include "type.h"
-
 /* $Id: ary.c,v 1.4 2004/02/25 00:00:32 dvd Exp $ */
+#include "type.h"
 
 #include "rn.h"
 #include "ary.h"
