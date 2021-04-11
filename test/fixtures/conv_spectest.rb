@@ -5,15 +5,13 @@ require 'fileutils'
 clean_files = Dir.glob("*") - ["spectest.xml","conv_spectest.rb","RngToRncClassic.xsl"]
 
 clean_files.each do |f|
-  FileUtils.rm f
+  FileUtils.rm f unless File.directory?(f)
 end
-
-@converter = :trang
 
 doc = Nokogiri::XML.parse(File.read("spectest.xml"))
 
-def convert(rng_num)
-  case @converter
+def convert(rng_num, converter = :trang)
+  case converter
   when :xslt
     xslt_cmd = "xsltproc RngToRncClassic.xsl test#{rng_num}.rng > test#{rng_num}.rnc"
     puts " -> #{xslt_cmd}"
@@ -44,8 +42,15 @@ doc.search("//testSuite").each do |test_suite|
           end
           convert("#{rng_num}_resource_#{nm}")
         when "incorrect"
+          # IGNORED
           puts "INCORRECT"
           # won't convert to rnc
+          File.open("test#{rng_num}_incorrect.rng", "w") do |f|
+            f.write child.children.to_s.strip
+          end
+          convert("#{rng_num}_incorrect", :xslt)
+          #FileUtils.rm("test#{rng_num}.rng")
+          rng_cnt += 1
         when "correct"
           puts "CORRECT"
           File.open("test#{rng_num}.rng", "w") do |f|

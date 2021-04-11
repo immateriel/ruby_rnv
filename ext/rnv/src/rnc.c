@@ -170,6 +170,9 @@ static void rnc_source_init(struct rnc_source *sp,char *fn) {
   sp->cur=0;
   for(i=0;i!=2;++i)  sp->sym[i].s=(char*)m_alloc(
     sp->sym[i].slen=BUFSIZE,sizeof(char));
+
+  if(!sp->verror_handler)
+    sp->verror_handler= &verror_default_handler;
 }
 
 static int rnc_read(struct rnc_source *sp) {
@@ -200,7 +203,7 @@ int rnc_errors(struct rnc_source *sp) {
 #define DE_CHOICE 8
 #define DE_ILEAVE 16
 
-void rnc_init(rnv_t *rnv, rnc_st_t *rnc_st) {
+void rnc_init(rnc_st_t *rnc_st) {
     rnc_st->verror_handler = &verror_default_handler;
     rnc_st->len_p=LEN_P; rnc_st->path=(char*)m_alloc(rnc_st->len_p,sizeof(char));
     /* initialize scopes */
@@ -910,8 +913,8 @@ static void add_well_known_nss(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st, int
 static int file(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st, struct rnc_source *sp,int nsuri) {
   int ret=0;
   struct rnc_source src;
-  src.user_data = rnv->user_data;
   src.verror_handler = rnv->verror_handler;
+  src.user_data = rnv->user_data;
   add_well_known_nss(rnv, rnc_st, rn_st, nsuri);
   if(rnc_open(&src,rnc_st->path)!=-1) {
     ret=topLevel(rnv, rnc_st, rn_st, &src);

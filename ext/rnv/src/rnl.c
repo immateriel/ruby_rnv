@@ -19,11 +19,16 @@ void rnl_default_verror_handler(void *data, int erno, int (*handler)(void *data,
 
 void rnl_init(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st, rnd_st_t *rnd_st) {
     rn_init(rnv, rn_st);
-    rnc_init(rnv, rnc_st);
-    rnc_st->verror_handler = rnv->verror_handler;
+    rnc_init(rnc_st);
+
+    if(rnv->verror_handler)
+      rnc_st->verror_handler = rnv->verror_handler;
     rnc_st->user_data = rnv->user_data;
-    rnd_init(rnv, rnd_st); 
-    rnd_st->verror_handler = rnv->verror_handler;
+
+    rnd_init(rnd_st); 
+
+    if(rnv->verror_handler)
+      rnd_st->verror_handler = rnv->verror_handler;
     rnd_st->user_data = rnv->user_data;
 }
 
@@ -38,24 +43,24 @@ static int load(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st, rnd_st_t *rnd_st, 
 
 int rnl_fn(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st, rnd_st_t *rnd_st, char *fn) {
   struct rnc_source src;
-  src.user_data = rnv->user_data;
   src.verror_handler = rnv->verror_handler;
+  src.user_data = rnv->user_data;
   rnc_open(&src,fn); 
   return load(rnv, rnc_st, rn_st, rnd_st, &src);
 }
 
 int rnl_fd(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st, rnd_st_t *rnd_st, char *fn,int fd) {
   struct rnc_source src;
-  src.user_data = rnv->user_data;
   src.verror_handler = rnv->verror_handler;
+  src.user_data = rnv->user_data;
   rnc_bind(&src,fn,fd); 
   return load(rnv, rnc_st, rn_st, rnd_st, &src);
 }
 
 int rnl_s(rnv_t *rnv, rnc_st_t *rnc_st, rn_st_t *rn_st, rnd_st_t *rnd_st, char *fn,char *s,int len) {
   struct rnc_source src;
-  src.user_data = rnv->user_data;
   src.verror_handler = rnv->verror_handler;
+  src.user_data = rnv->user_data;
   rnc_stropen(&src,fn,s,len); 
   return load(rnv, rnc_st, rn_st, rnd_st, &src);
 }

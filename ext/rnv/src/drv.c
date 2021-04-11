@@ -43,8 +43,6 @@ static void error_handler(drv_st_t *drv_st,int erno,...) {
   va_list ap; va_start(ap,erno); drv_default_verror_handler(drv_st->user_data, erno, drv_st->verror_handler, ap); va_end(ap);
 }
 
-//static void verror_handler_xsd(rnv_t *rnv, int erno,va_list ap) {drv_default_verror_handler(rnv,erno|ERBIT_XSD,ap);}
-
 static void new_memo(drv_st_t *drv_st, int typ) {
   if(drv_st->drv_compact) ht_deli(&drv_st->ht_m,drv_st->i_m);
   drv_st->memo[drv_st->i_m][0]=typ;
@@ -127,12 +125,15 @@ static int emb_xsd_equal(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, int uri, ch
 }
 
 void drv_init(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, rx_st_t *rx_st) {
-    //rnv->drv_verror_handler=&drv_default_verror_handler;
-    //rx_st->rnv = rnv;
+    rx_st->verror_handler = &verror_default_handler;
+    drv_st->verror_handler = &verror_default_handler;
+    
     xsd_init(rx_st);
-    rx_st->verror_handler = rnv->verror_handler;
+    
+    if(rnv->verror_handler)
+      rx_st->verror_handler = rnv->verror_handler;
     rx_st->user_data = rnv->user_data;
-    //rnv->xsd_verror_handler=&verror_handler_xsd;
+
     drv_st->memo=(int (*)[M_SIZE])m_alloc(drv_st->len_m=LEN_M,sizeof(int[M_SIZE]));
     drv_st->dtl=(struct dtl*)m_alloc(drv_st->len_dtl=LEN_DTL,sizeof(struct dtl));
     drv_st->ht_m.user = drv_st;
@@ -143,9 +144,9 @@ void drv_init(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, rx_st_t *rx_st) {
     drv_add_dtl(rnv, drv_st, rn_st, rnv->rn_string+0,&builtin_equal,&builtin_allows);
     drv_add_dtl(rnv, drv_st, rn_st, rnv->rn_string+rnv->rn_xsd_uri,&emb_xsd_equal,&emb_xsd_allows);
 
-    drv_st->verror_handler = rnv->verror_handler;
+    if(rnv->verror_handler)
+      drv_st->verror_handler = rnv->verror_handler;
     drv_st->user_data = rnv->user_data;
-
 }
 
 void drv_dispose(drv_st_t *drv_st) {

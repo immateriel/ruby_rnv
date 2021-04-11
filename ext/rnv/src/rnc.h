@@ -33,7 +33,7 @@
 
 extern void rnc_default_verror_handler(void *data, int erno, int (*handler)(void *data, int erno,char *format, va_list ap), va_list ap);
 
-extern void rnc_init(rnv_t *rnv, rnc_st_t *rnc_st);
+extern void rnc_init(rnc_st_t *rnc_st);
 extern void rnc_dispose(rnc_st_t *rnc_st);
 
 extern int rnc_open(struct rnc_source *sp,char *fn);

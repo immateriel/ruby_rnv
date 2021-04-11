@@ -30,7 +30,7 @@ void rnd_default_verror_handler(void *data, int erno, int (*handler)(void *data,
   }
 }
 
-void rnd_init(rnv_t *rnv, rnd_st_t *rnd_st) {
+void rnd_init(rnd_st_t *rnd_st) {
     rnd_st->verror_handler = &verror_default_handler;
 }
 
@@ -42,9 +42,9 @@ void rnd_dispose(rnd_st_t *rnd_st) {
 
 void rnd_clear(void) {}
 
-static void error_handler(rnv_t *rnv, rnd_st_t *rnd_st, int er_no,...) {
-  va_list ap; va_start(ap,er_no); 
-  rnd_default_verror_handler(rnv, er_no, rnd_st->verror_handler, ap); 
+static void error_handler(rnd_st_t *rnd_st, int erno,...) {
+  va_list ap; va_start(ap,erno); 
+  rnd_default_verror_handler(rnd_st->user_data, erno, rnd_st->verror_handler, ap); 
   va_end(ap);
   ++rnd_st->errors;
 }
@@ -145,9 +145,9 @@ static void loops(rnv_t *rnv, rnd_st_t *rnd_st) {
   int i=0,p=rnd_st->flat[i],nc=-1,p1;
   for(;;) {
     if(loop(rnv, p)) {
-      if(i==0) error_handler(rnv, rnd_st, RND_ER_LOOPST); else {
+      if(i==0) error_handler(rnd_st, RND_ER_LOOPST); else {
 	char *s=rnx_nc2str(rnv, nc);
-	error_handler(rnv, rnd_st,RND_ER_LOOPEL, s);
+	error_handler(rnd_st,RND_ER_LOOPEL, s);
 	m_free(s);
       }
     }
@@ -199,7 +199,7 @@ static void ctypes(rnv_t *rnv, rnd_st_t *rnd_st) {
       ctype(rnv, p1);
       if(!rn_contentType(rnv, p1)) {
 	char *s=rnx_nc2str(rnv, nc);
-	error_handler(rnv,rnd_st,RND_ER_CTYPE, s);
+	error_handler(rnd_st,RND_ER_CTYPE, s);
 	m_free(s);
       }
     }
@@ -332,18 +332,18 @@ static void path(rnv_t *rnv, rnd_st_t *rnd_st, int p,int nc) {
   case RN_P_INTERLEAVE: rn_Interleave(p,p1,p2); goto BINARY;
   case RN_P_GROUP: rn_Group(p,p1,p2); goto BINARY;
   case RN_P_DATA_EXCEPT: rn_DataExcept(p,p1,p2);
-    if(bad_data_except(rnv, p2)) {char *s=rnx_nc2str(rnv, nc); error_handler(rnv,rnd_st,RND_ER_BADEXPT, s); m_free(s);}
+    if(bad_data_except(rnv, p2)) {char *s=rnx_nc2str(rnv, nc); error_handler(rnd_st,RND_ER_BADEXPT, s); m_free(s);}
     goto BINARY;
   BINARY: path(rnv, rnd_st, p1,nc); path(rnv, rnd_st, p2,nc); break;
 
   case RN_P_ONE_OR_MORE: rn_OneOrMore(p,p1);
-    if(bad_one_or_more(rnv, p1,0)) {char *s=rnx_nc2str(rnv, nc); error_handler(rnv,rnd_st,RND_ER_BADMORE, s); m_free(s);}
+    if(bad_one_or_more(rnv, p1,0)) {char *s=rnx_nc2str(rnv, nc); error_handler(rnd_st,RND_ER_BADMORE, s); m_free(s);}
     goto UNARY;
   case RN_P_LIST: rn_List(p,p1);
-    if(bad_list(rnv, p1)) {char *s=rnx_nc2str(rnv, nc); error_handler(rnv,rnd_st,RND_ER_BADLIST, s); m_free(s);}
+    if(bad_list(rnv, p1)) {char *s=rnx_nc2str(rnv, nc); error_handler(rnd_st,RND_ER_BADLIST, s); m_free(s);}
     goto UNARY;
   case RN_P_ATTRIBUTE: rn_Attribute(p,nc1,p1);
-    if(bad_attribute(rnv, p1)) {char *s=rnx_nc2str(rnv, nc),*s1=rnx_nc2str(rnv, nc1); error_handler(rnv,rnd_st,RND_ER_BADATTR, s1,s); m_free(s1); m_free(s);}
+    if(bad_attribute(rnv, p1)) {char *s=rnx_nc2str(rnv, nc),*s1=rnx_nc2str(rnv, nc1); error_handler(rnd_st,RND_ER_BADATTR, s1,s); m_free(s1); m_free(s);}
     goto UNARY;
   UNARY: path(rnv, rnd_st, p1,nc); break;
 
@@ -353,7 +353,7 @@ static void path(rnv_t *rnv, rnd_st_t *rnd_st, int p,int nc) {
 
 static void paths(rnv_t *rnv, rnd_st_t *rnd_st) {
   int i,p,p1,nc;
-  if(bad_start(rnv, rnd_st->flat[0])) error_handler(rnv,rnd_st, RND_ER_BADSTART);
+  if(bad_start(rnv, rnd_st->flat[0])) error_handler(rnd_st, RND_ER_BADSTART);
   for(i=0;i!=rnd_st->n_f;++i) {
     p=rnd_st->flat[i];
     if(RN_P_IS(p,RN_P_ELEMENT)) {

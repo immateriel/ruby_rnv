@@ -35,7 +35,8 @@ static void error_handler(rnv_t *rnv, int erno,...) {
 }
 
 void rnv_init(rnv_t *rnv, drv_st_t *drv_st, rn_st_t *rn_st, rx_st_t *rx_st) {
-    rnv->verror_handler = &verror_default_handler;
+    if(!rnv->verror_handler)
+      rnv->verror_handler = &verror_default_handler;
     drv_init(rnv, drv_st, rn_st, rx_st);
 }
 

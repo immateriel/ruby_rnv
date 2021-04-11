@@ -15,7 +15,8 @@ VALUE rb_datatype_push_error(VALUE self, VALUE r_msg)
 
   Check_Type(r_msg, T_STRING);
 
-  document->rnv->verror_handler((void *)r_doc, ERBIT_DTL, RSTRING_PTR(r_msg), NULL);
+  if(document->rnv->verror_handler)
+    document->rnv->verror_handler((void *)r_doc, ERBIT_DTL, RSTRING_PTR(r_msg), NULL);
 
   return Qnil;
 }
@@ -57,14 +58,14 @@ VALUE rb_document_init(VALUE self)
   document_t *document;
   Data_Get_Struct(self, document_t, document);
 
+  document->rnv->verror_handler = &ruby_verror_handler;
+  document->rnv->user_data = (void *)self;
+
   rnl_init(document->rnv, document->rnc_st, document->rn_st, document->rnd_st);
   rnv_init(document->rnv, document->drv_st, document->rn_st, document->rx_st);
   rnx_init(document->rnv);
 
   document->opened = document->ok = 0;
-
-  document->rnv->user_data = (void *)self;
-  document->rnv->verror_handler = &ruby_verror_handler;
 
   document->nexp = 16; /* maximum number of candidates to display */
   document->text = NULL;

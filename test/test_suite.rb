@@ -11,6 +11,7 @@ class TestSuite < Minitest::Test
        test_tok_illegal_esc_002 test_tok_legal_ident_005 test_tok_legal_ident_008 test_tok_illegal_esc_003
        test_tok_legal_comm_010 test_tok_legal_cname_003 test_tok_illegal_esc_004 test_tok_illegal_cname_007
        test_tok_legal_lit_009]
+
   # James Clark's test suite
   # FIXME : unsupported include
   # trang : 5 failures/1768, rng with unresolved include are not converted
@@ -39,7 +40,7 @@ class TestSuite < Minitest::Test
       end
     end
   end
-
+  
   private
 
   def process_schema(rnc, valid = true)
