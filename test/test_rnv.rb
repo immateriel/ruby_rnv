@@ -61,9 +61,14 @@ class TestRnv < Minitest::Test
     assert_raises TypeError do
       validator.parse_file(nil)
     end
-    assert_raises ArgumentError do
+    assert_raises RNV::DocumentEmpty do
       validator.parse_string(nil)
     end
+    assert_raises RNV::DocumentEmpty do
+      validator.parse_string("")
+    end
+
+    validator.parse_string(" ")
   end
 
   class TestDTL < RNV::DataTypeLibrary

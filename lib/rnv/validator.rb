@@ -3,6 +3,8 @@ require 'rnv/rnv'
 require 'rnv/pre_processor'
 
 module RNV
+  class DocumentEmpty < StandardError; end
+
   # @!visibility private
   class NokogiriSaxDocument < Nokogiri::XML::SAX::Document
     # @return [Nokogiri::XML::SAX::ParserContext]
@@ -78,6 +80,8 @@ module RNV
       rnv_doc = NokogiriSaxDocument.new(@document)
       rnv_doc.pre_processor = pre_processor
 
+      raise RNV::DocumentEmpty if str.nil? or str.empty?
+
       parser = Nokogiri::XML::SAX::Parser.new(rnv_doc)
       parser.parse_memory(str) do |ctx|
         ctx.replace_entities = true
@@ -97,6 +101,8 @@ module RNV
       rnv_doc.pre_processor = pre_processor
 
       file = xml.is_a?(File) ? xml : File.open(xml)
+
+      raise RNV::DocumentEmpty if file.size == 0
 
       parser = Nokogiri::XML::SAX::Parser.new(rnv_doc)
       parser.parse(file) do |ctx|
