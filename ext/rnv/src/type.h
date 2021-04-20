@@ -105,6 +105,12 @@ typedef struct rx_st
 
 } rx_st_t;
 
+typedef struct dtl_cb 
+{
+  int p;
+  int ret;
+} dtl_cb_t;
+
 typedef struct drv_st
 {
   struct dtl *dtl;
@@ -114,6 +120,9 @@ typedef struct drv_st
   int len_m;
   struct hashtable ht_m;
   int (*memo)[5];
+
+  dtl_cb_t dtl_cb[256];
+  int n_dtl_cb;
 
   int drv_compact;
 

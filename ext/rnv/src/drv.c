@@ -381,7 +381,18 @@ static int text(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, drv_st_t *drv_st, in
     ret=rn_nullable(list(rnv, rn_st, rx_st, drv_st, p1,s,n))?rnv->rn_empty:rnv->rn_notAllowed;
     break;
   case RN_P_DATA: rn_Data(p,dt,ps); rn_Datatype(dt,lib,typ);
+    int i;
+    // avoid dtl called multiple times for same data
+    for(i = 0;i<drv_st->n_dtl_cb;i++) {
+      if(drv_st->dtl_cb[i].p == p)
+        ret = drv_st->dtl_cb[i].ret;
+    }
+    if(!ret) {
     ret=getdtl(rnv, drv_st, lib)->allows(rnv,rn_st,rx_st, lib, rnv->rn_string+typ,rnv->rn_string+ps,s,n)?rnv->rn_empty:rnv->rn_notAllowed;
+    drv_st->dtl_cb[drv_st->n_dtl_cb].p = p;
+    drv_st->dtl_cb[drv_st->n_dtl_cb].ret = ret;
+    drv_st->n_dtl_cb++;
+    }
     break;
   case RN_P_DATA_EXCEPT: rn_DataExcept(p,p1,p2);
     ret=text(rnv, rn_st, rx_st, drv_st, p1,s,n)==rnv->rn_empty&&!rn_nullable(text(rnv, rn_st, rx_st, drv_st, p2,s,n))?rnv->rn_empty:rnv->rn_notAllowed;
@@ -395,6 +406,7 @@ static int text(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, drv_st_t *drv_st, in
 }
 
 static int textws(rnv_t *rnv, rn_st_t *rn_st, rx_st_t *rx_st, drv_st_t *drv_st, int p,char *s,int n) {
+  drv_st->n_dtl_cb = 0;
   int p1=text(rnv, rn_st, rx_st, drv_st, p,s,n),ws=1;
   char *end=s+n;
   while(s!=end) {if(!xmlc_white_space(*s)) {ws=0; break;} ++s;}
