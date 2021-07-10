@@ -439,7 +439,7 @@ static void ruby_parse_error(VALUE err_obj, int erno, va_list ap)
     //  return id;
 }
 
-VALUE ruby_create_error(VALUE self, VALUE line, VALUE col, int erno, char *format, va_list ap)
+VALUE ruby_create_error(VALUE self, VALUE line, VALUE col, VALUE xpath, int erno, char *format, va_list ap)
 {
     VALUE err_class = Error;
     VALUE err_obj = rb_class_new_instance(0, NULL, err_class);
@@ -463,6 +463,8 @@ VALUE ruby_create_error(VALUE self, VALUE line, VALUE col, int erno, char *forma
     rb_iv_set(err_obj, "@line", line); // set line from sax parser
     rb_iv_set(err_obj, "@col", col);   // set col from sax parser
 
+    rb_iv_set(err_obj, "@xpath", xpath); // set line from sax parser
+
     rb_iv_set(err_obj, "@required", rb_ary_new2(0));
     rb_iv_set(err_obj, "@allowed", rb_ary_new2(0));
     return err_obj;
@@ -481,7 +483,7 @@ int ruby_verror_handler(void *data, int erno, char *format, va_list ap)
 
     if (erno & ERBIT_RNL || erno & ERBIT_RNC || erno & ERBIT_RND)
     {
-        VALUE err_obj = ruby_create_error(self, INT2NUM(-1), INT2NUM(-1), erno, format, ap);
+        VALUE err_obj = ruby_create_error(self, INT2NUM(-1), INT2NUM(-1), Qnil, erno, format, ap);
         rb_iv_set(err_obj, "@original_expected", rb_str_new2(""));
         rb_ary_push(errors, err_obj);
     }
@@ -491,6 +493,7 @@ int ruby_verror_handler(void *data, int erno, char *format, va_list ap)
         VALUE r_last_col = rb_iv_get(self, "@last_col");
         int last_line = NUM2INT(r_last_line);
         int last_col = NUM2INT(r_last_col);
+        int xpath = NUM2INT(r_last_col);
 
         // only one error per line/col
         if (document->last_line != last_line || document->last_col != last_col)
@@ -498,7 +501,7 @@ int ruby_verror_handler(void *data, int erno, char *format, va_list ap)
             document->last_line = last_line;
             document->last_col = last_col;
 
-            VALUE err_obj = ruby_create_error(self, r_last_line, r_last_col, erno, format, ap);
+            VALUE err_obj = ruby_create_error(self, r_last_line, r_last_col, rb_iv_get(self, "@xpath"), erno, format, ap);
 
             VALUE expected = rb_str_new2("");
 

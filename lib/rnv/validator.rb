@@ -6,35 +6,72 @@ module RNV
   class DocumentEmpty < StandardError; end
 
   # @!visibility private
+  class XpathNode
+    attr_accessor :name
+    attr_accessor :parent
+    attr_accessor :children
+
+    def initialize(name)
+      @name = name
+      @children = []
+    end
+
+    def add_child(name)
+      child = XpathNode.new(name)
+      child.parent = self
+      @children << child
+      child
+    end
+
+    def to_xpath
+      xpath = []
+      current = self
+      while current.name
+        xpath << "#{current.name}[#{current.parent.children.select{|child| child.name == current.name}.index(current)+1}]"
+        current = current.parent
+      end
+      xpath.reverse
+    end
+  end
+
+  # @!visibility private
   class NokogiriSaxDocument < Nokogiri::XML::SAX::Document
     # @return [Nokogiri::XML::SAX::ParserContext]
-    attr_accessor :ctx, :pre_processor
+    attr_accessor :ctx
+    attr_accessor :pre_processor
+
     # @param [RNV::Document] document
     def initialize(document)
       @document = document
+      @xpath_tree = XpathNode.new(nil)
+      @position = {}
+      @xpath = []
     end
 
     def start_element_namespace(name, attrs = [], prefix = nil, uri = nil, ns = nil)
       tag_attrs = attrs.map { |attr| [attr.uri ? "#{attr.uri}:#{attr.localname}" : attr.localname, attr.value] }
       tag_name = uri ? "#{uri}:#{name}" : name
-      @document.start_tag(@pre_processor.tag(tag_name), @pre_processor.attributes(tag_attrs))
+      @xpath_tree = @xpath_tree.add_child(name)
+
       update_line_col
+      @document.start_tag(@pre_processor.tag(tag_name), @pre_processor.attributes(tag_attrs))
     end
 
     def end_element_namespace(name, prefix = nil, uri = nil)
+      @xpath_tree = @xpath_tree.parent
       tag_name = uri ? "#{uri}:#{name}" : name
+      update_line_col
       @document.end_tag(@pre_processor.tag(tag_name))
-      update_line_col
     end
 
-    def characters str
-      @document.characters(@pre_processor.text(str))
+    def characters(value)
       update_line_col
+      @document.characters(@pre_processor.text(value))
     end
 
-    def cdata_block str
-      @document.characters(@pre_processor.text(str))
+    def cdata_block(value)
       update_line_col
+      @document.characters(@pre_processor.text(value))
     end
 
     private
@@ -42,6 +79,7 @@ module RNV
     def update_line_col
       @document.last_line = @ctx.line
       @document.last_col = @ctx.column
+      @document.xpath = "/"+@xpath_tree.to_xpath.join("/")
     end
   end
 

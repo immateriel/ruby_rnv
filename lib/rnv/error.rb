@@ -2,6 +2,7 @@ module RNV
   class Error
     attr_reader :original_message, :original_expected
     attr_reader :ns_uri, :element, :attr, :value, :required, :allowed
+    attr_reader :xpath
 
     # @return [String]
     def message
@@ -33,8 +34,8 @@ module RNV
 
     # @return [String]
     def compact_expected
-      [(compact_required_set.length > 0 ? compact_expected_phrase(compact_required_set) +" required" : nil),
-      (compact_allowed_set.length > 0 ? compact_expected_phrase(compact_allowed_set) + " allowed" : nil)].join("; ")
+      [(compact_required_set.length > 0 ? compact_expected_phrase(compact_required_set) + " required" : nil),
+       (compact_allowed_set.length > 0 ? compact_expected_phrase(compact_allowed_set) + " allowed" : nil)].join("; ")
     end
 
     # @param [String] data original content
@@ -43,7 +44,7 @@ module RNV
       out = ""
       if data and @line
         err_data = data.split("\n")[@line - 1]
-        if err_data
+        if err_data && err_data.length > @col - 1
           err_data.insert(@col - 1, "🢑")
 
           start = 0
@@ -73,7 +74,7 @@ module RNV
       when :rn_p_attribute
         compact_expected_to_s(e.last, with_ns)
       when :rn_p_element
-        "<"+compact_expected_to_s(e.last, with_ns)+">"
+        "<" + compact_expected_to_s(e.last, with_ns) + ">"
       when :rn_p_data
         compact_expected_to_s(e.last, with_ns)
       when :rn_nc_datatype
@@ -84,16 +85,16 @@ module RNV
     end
 
     def compact_required_set
-      @compact_required_set ||= @required.map{|r| compact_expected_to_s(r)}.compact.uniq
+      @compact_required_set ||= @required.map { |r| compact_expected_to_s(r) }.compact.uniq
     end
 
     def compact_allowed_set
-      @compact_allowed_set ||= @allowed.map{|r| compact_expected_to_s(r)}.compact.uniq
+      @compact_allowed_set ||= @allowed.map { |r| compact_expected_to_s(r) }.compact.uniq
     end
 
     def compact_expected_phrase(set)
       if set.length > 1
-        set[0..-2].join(", ") + " or "+set.last
+        set[0..-2].join(", ") + " or " + set.last
       else
         set.last
       end

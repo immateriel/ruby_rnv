@@ -463,6 +463,12 @@ void Init_rnv()
   rb_define_attr(Document, "last_col", 1, 1);
 
   /*
+   * xpath to node, set by SAX handler
+   * @return [String]
+   */
+  rb_define_attr(Document, "xpath", 1, 1);
+
+  /*
  * errors from current document
  * @return [Array<RNV::Error>]
  */
