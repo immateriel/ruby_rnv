@@ -44,8 +44,6 @@ module RNV
     def initialize(document)
       @document = document
       @xpath_tree = XpathNode.new(nil)
-      @position = {}
-      @xpath = []
     end
 
     def start_element_namespace(name, attrs = [], prefix = nil, uri = nil, ns = nil)
