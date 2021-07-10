@@ -1,7 +1,7 @@
 module RNV
   class Error
     attr_reader :original_message, :original_expected
-    attr_reader :ns_uri, :element, :attr, :value, :required, :allowed
+    attr_reader :ns_uri, :element, :attr, :value
     attr_reader :xpath
 
     # @return [String]
@@ -67,6 +67,14 @@ module RNV
       "#<RNV::Error code: :#{@code}, message: '#{self.message}', expected: '#{self.expected}, line: #{@line}, column: #{@col}>"
     end
 
+    def required
+      @required
+    end
+
+    def allowed
+      @allowed.select{|a| @attr ? a.first == :rn_p_attribute : true}
+    end
+
     private
 
     def compact_expected_to_s(e, with_ns = false)
@@ -77,6 +85,8 @@ module RNV
         "<" + compact_expected_to_s(e.last, with_ns) + ">"
       when :rn_p_data
         compact_expected_to_s(e.last, with_ns)
+      when :rn_p_value
+        "\"#{e.last}\""
       when :rn_nc_datatype
         "datatype #{e[-2]}:#{e.last}"
       when :rn_nc_qname
@@ -85,11 +95,11 @@ module RNV
     end
 
     def compact_required_set
-      @compact_required_set ||= @required.map { |r| compact_expected_to_s(r) }.compact.uniq
+      @compact_required_set ||= required.map { |r| compact_expected_to_s(r) }.compact.uniq
     end
 
     def compact_allowed_set
-      @compact_allowed_set ||= @allowed.map { |r| compact_expected_to_s(r) }.compact.uniq
+      @compact_allowed_set ||= allowed.map { |r| compact_expected_to_s(r) }.compact.uniq
     end
 
     def compact_expected_phrase(set)

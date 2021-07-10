@@ -496,7 +496,7 @@ int ruby_verror_handler(void *data, int erno, char *format, va_list ap)
         int xpath = NUM2INT(r_last_col);
 
         // only one error per line/col
-        if (document->last_line != last_line || document->last_col != last_col)
+        // if (document->last_line != last_line || document->last_col != last_col)
         {
             document->last_line = last_line;
             document->last_col = last_col;

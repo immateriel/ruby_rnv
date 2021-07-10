@@ -27,7 +27,7 @@ else
 
   #pp validator.errors
   validator.errors.each do |err|
-    puts "#{xml}:#{err.to_s}"
+    puts "#{xml}:#{err.line}:#{err.col}: #{err.compact_message};#{err.compact_expected}"
   end
 
   if validator.document.valid?

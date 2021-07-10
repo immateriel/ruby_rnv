@@ -67,7 +67,7 @@ VALUE rb_document_init(VALUE self)
 
   document->opened = document->ok = 0;
 
-  document->nexp = 16; /* maximum number of candidates to display */
+  document->nexp = 256; /* maximum number of candidates to display */
   document->text = NULL;
 
   rb_iv_set(self, "@errors", rb_ary_new2(0));
