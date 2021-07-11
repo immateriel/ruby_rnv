@@ -8,6 +8,7 @@ module RNV
   # @!visibility private
   class XpathNode
     attr_accessor :name
+    attr_accessor :uri, :namespaces
     attr_accessor :parent
     attr_accessor :children
 
@@ -16,8 +17,10 @@ module RNV
       @children = []
     end
 
-    def add_child(name)
+    def add_child(name, uri = nil, namespaces = {})
       child = XpathNode.new(name)
+      child.uri = uri
+      child.namespaces = namespaces
       child.parent = self
       @children << child
       child
@@ -26,11 +29,29 @@ module RNV
     def to_xpath
       xpath = []
       current = self
+      namespaces = {}
+      rev_namespaces = {}
+      ns_current = self
+      while ns_current.name
+        ns_current.namespaces.each do |prefix, uri|
+          rev_namespaces[uri] ||= []
+          rev_namespaces[uri] << prefix
+        end
+        ns_current = ns_current.parent
+      end
+
+      rev_namespaces.each do |uri, prefixes|
+        if prefixes.length > 0
+          prefixes.select! { |prefix| prefix != "xmlns" }
+        end
+        namespaces[prefixes.first||"xmlns"] = uri
+      end
+
       while current.name
-        xpath << "#{current.name}[#{current.parent.children.select{|child| child.name == current.name}.index(current)+1}]"
+        xpath << "#{rev_namespaces[current.uri].first||"xmlns"}:#{current.name}[#{current.parent.children.select { |child| child.name == current.name }.index(current) + 1}]"
         current = current.parent
       end
-      xpath.reverse
+      [xpath.reverse, namespaces]
     end
   end
 
@@ -49,7 +70,11 @@ module RNV
     def start_element_namespace(name, attrs = [], prefix = nil, uri = nil, ns = nil)
       tag_attrs = attrs.map { |attr| [attr.uri ? "#{attr.uri}:#{attr.localname}" : attr.localname, attr.value] }
       tag_name = uri ? "#{uri}:#{name}" : name
-      @xpath_tree = @xpath_tree.add_child(name)
+      namespaces = {}
+      ns.each do |n|
+        namespaces[n.first || "xmlns"] = n.last
+      end
+      @xpath_tree = @xpath_tree.add_child(name, uri, namespaces)
 
       update_line_col
       @document.start_tag(@pre_processor.tag(tag_name), @pre_processor.attributes(tag_attrs))
@@ -77,7 +102,8 @@ module RNV
     def update_line_col
       @document.last_line = @ctx.line
       @document.last_col = @ctx.column
-      @document.xpath = "/"+@xpath_tree.to_xpath.join("/")
+      xpath = @xpath_tree.to_xpath
+      @document.xpath = ["/" + xpath.first.join("/"), xpath.last]
     end
   end
 

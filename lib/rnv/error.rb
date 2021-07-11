@@ -68,7 +68,7 @@ module RNV
     end
 
     def required
-      @required
+      @required.select{|a| @attr ? a.first == :rn_p_attribute : true}
     end
 
     def allowed
