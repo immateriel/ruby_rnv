@@ -48,7 +48,7 @@ module RNV
       end
 
       while current.name
-        xpath << "#{rev_namespaces[current.uri].first||"xmlns"}:#{current.name}[#{current.parent.children.select { |child| child.name == current.name }.index(current) + 1}]"
+        xpath << "#{rev_namespaces[current.uri]&.first||"xmlns"}:#{current.name}[#{current.parent.children.select { |child| child.name == current.name }.index(current) + 1}]"
         current = current.parent
       end
       [xpath.reverse, namespaces]
