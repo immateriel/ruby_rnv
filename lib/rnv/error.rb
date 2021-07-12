@@ -91,6 +91,8 @@ module RNV
         "datatype #{e[-2]}:#{e.last}"
       when :rn_nc_qname
         with_ns ? "#{e.first}:#{e.last}" : e.last
+      else
+        "unknown #{e.first}"
       end
     end
 
