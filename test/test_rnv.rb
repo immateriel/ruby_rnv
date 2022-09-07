@@ -97,7 +97,7 @@ class TestRnv < Minitest::Test
     assert_equal 0, validator.errors.length
 
     validator.parse_string %{<foo val="z">yy</foo>}
-    assert_equal 1, validator.errors.length
+    assert_equal 2, validator.errors.length
   end
 
   # test library that check if link is local or external

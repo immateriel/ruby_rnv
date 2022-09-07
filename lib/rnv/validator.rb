@@ -48,7 +48,8 @@ module RNV
       end
 
       while current.name
-        xpath << "#{rev_namespaces[current.uri]&.first||"xmlns"}:#{current.name}[#{current.parent.children.select { |child| child.name == current.name }.index(current) + 1}]"
+        current_name_with_ns = "#{rev_namespaces[current.uri]&.first||"xmlns"}:#{current.name}"
+        xpath << "#{current_name_with_ns}[#{current.parent.children.select { |child| child.name == current.name }.index(current) + 1}]"
         current = current.parent
       end
       [xpath.reverse, namespaces]
@@ -75,16 +76,15 @@ module RNV
         namespaces[n.first || "xmlns"] = n.last
       end
       @xpath_tree = @xpath_tree.add_child(name, uri, namespaces)
-
       update_line_col
       @document.start_tag(@pre_processor.tag(tag_name), @pre_processor.attributes(tag_attrs))
     end
 
     def end_element_namespace(name, prefix = nil, uri = nil)
-      @xpath_tree = @xpath_tree.parent
       tag_name = uri ? "#{uri}:#{name}" : name
       update_line_col
       @document.end_tag(@pre_processor.tag(tag_name))
+      @xpath_tree = @xpath_tree.parent
     end
 
     def characters(value)
