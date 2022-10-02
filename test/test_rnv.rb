@@ -74,13 +74,63 @@ class TestRnv < Minitest::Test
   class TestDTL < RNV::DataTypeLibrary
     def equal(typ, val, s)
       #puts "equal #{typ} #{val} #{s} #{n}"
-      ["x","y","z"].include?(val)
+      ["x", "y", "z"].include?(val)
     end
 
     def allows(typ, ps, s)
       #puts "allows #{typ} #{ps} #{s} #{n}"
-      s=="xx"
+      s == "xx"
     end
+  end
+
+  def test_error_xpath
+    validator = RNV::Validator.new
+    validator.load_schema_from_string %{
+default namespace = "http://www.example.com"
+namespace ns1 = "http://www.example.com/1"
+namespace ns2 = "http://www.example.com/2"
+element foo {
+  element ns1:bar {
+    element ns2:baz {text+}*
+  }*
+ }
+}
+    xml = %{<foo xmlns = "http://www.example.com" xmlns:ns1="http://www.example.com/1" xmlns:ns2="http://www.example.com/2">
+<ns1:bar><ns2:baz>text</ns2:baz><ns2:baz>more text</ns2:baz><ns2:baz><qux/></ns2:baz></ns1:bar>
+</foo>
+}
+    validator.parse_string xml
+    assert_equal 1, validator.errors.length
+    err = validator.errors.first
+    assert_equal "/xmlns:foo[1]/ns1:bar[1]/ns2:baz[3]/xmlns:qux[1]", err.xpath.first
+    assert_equal({ "xmlns" => "http://www.example.com", "ns1" => "http://www.example.com/1", "ns2" => "http://www.example.com/2" },
+                 err.xpath.last)
+    assert Nokogiri::XML.parse(xml).root.at(*err.xpath) != nil
+
+    xml = %{<foo xmlns = "http://www.example.com">
+<bar xmlns="http://www.example.com/1"><baz xmlns="http://www.example.com/2">text</baz>
+<baz xmlns="http://www.example.com/2"><qux/></baz></bar>
+</foo>
+}
+    validator.parse_string xml
+    assert_equal 1, validator.errors.length
+    err = validator.errors.first
+    assert_equal "/xmlns:foo[1]/*[local-name() = 'bar'][1]/*[local-name() = 'baz'][2]/*[local-name() = 'qux'][1]", err.xpath.first
+    assert_equal({ "xmlns" => "http://www.example.com" },
+                 err.xpath.last)
+    assert Nokogiri::XML.parse(xml).root.at(*err.xpath) != nil
+
+    xml = %{<foo xmlns = "http://www.example.com" xmlns:ns1="http://www.example.com/1">
+<ns1:bar>text</ns1:bar><ns1:bar><baz xmlns="http://www.example.com/2">text</baz></ns1:bar>
+</foo>
+}
+    validator.parse_string xml
+    assert_equal 1, validator.errors.length
+    err = validator.errors.first
+    assert_equal "/xmlns:foo[1]/ns1:bar[1]", err.xpath.first
+    assert_equal({ "xmlns" => "http://www.example.com", "ns1" => "http://www.example.com/1" },
+                 err.xpath.last)
+    assert Nokogiri::XML.parse(xml).root.at(*err.xpath) != nil
   end
 
   def test_datatype_library

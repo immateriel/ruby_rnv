@@ -463,7 +463,7 @@ VALUE ruby_create_error(VALUE self, VALUE line, VALUE col, VALUE xpath, int erno
     rb_iv_set(err_obj, "@line", line); // set line from sax parser
     rb_iv_set(err_obj, "@col", col);   // set col from sax parser
 
-    rb_iv_set(err_obj, "@xpath", xpath); // set line from sax parser
+    rb_iv_set(err_obj, "@xpath", xpath); // set xpath from sax parser
 
     rb_iv_set(err_obj, "@required", rb_ary_new2(0));
     rb_iv_set(err_obj, "@allowed", rb_ary_new2(0));
@@ -493,7 +493,6 @@ int ruby_verror_handler(void *data, int erno, char *format, va_list ap)
         VALUE r_last_col = rb_iv_get(self, "@last_col");
         int last_line = NUM2INT(r_last_line);
         int last_col = NUM2INT(r_last_col);
-        int xpath = NUM2INT(r_last_col);
 
         // only one error per line/col
         // if (document->last_line != last_line || document->last_col != last_col)

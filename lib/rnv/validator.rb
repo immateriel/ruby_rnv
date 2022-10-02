@@ -8,20 +8,52 @@ module RNV
   # @!visibility private
   class XpathNode
     attr_accessor :name
-    attr_accessor :uri, :namespaces
+    attr_accessor :uri, :namespaces, :rev_namespaces, :xpath_name
     attr_accessor :parent
+    attr_accessor :idx
     attr_accessor :children
 
     def initialize(name)
       @name = name
+      @idx = 0
       @children = []
+      @namespaces = {}
+      @rev_namespaces = {}
+      @xpath_name = nil
     end
 
-    def add_child(name, uri = nil, namespaces = {})
+    def add_child(name, uri = nil, local_namespaces = {})
       child = XpathNode.new(name)
       child.uri = uri
-      child.namespaces = namespaces
+
+      @rev_namespaces.each do |ns_uri, ns_alias|
+        child.rev_namespaces[ns_uri] = ns_alias
+      end
+      local_namespaces.each do |ns_alias, ns_uri|
+        child.rev_namespaces[ns_uri] = ns_alias
+      end
+
+      all_namespaces = {}
+      child.rev_namespaces.each do |ns_uri, ns_alias|
+        all_namespaces[ns_alias] ||= []
+        all_namespaces[ns_alias] << ns_uri
+      end
+
+      child.namespaces = @namespaces.dup
       child.parent = self
+      child.idx = self.children.count { |other_child| other_child.name == name } + 1
+
+      if child.rev_namespaces[child.uri]
+        if all_namespaces[child.rev_namespaces[child.uri]].length == 1
+          child.namespaces[child.rev_namespaces[child.uri]] = child.uri
+          child.xpath_name = "#{child.rev_namespaces[child.uri]}:#{child.name}[#{child.idx}]"
+        else
+          child.xpath_name = "*[local-name() = '#{child.name}'][#{child.idx}]" # we can't say which ns it is
+        end
+      else
+        child.xpath_name = "xmlns:#{child.name}[#{child.idx}]"
+      end
+
       @children << child
       child
     end
@@ -29,30 +61,13 @@ module RNV
     def to_xpath
       xpath = []
       current = self
-      namespaces = {}
-      rev_namespaces = {}
-      ns_current = self
-      while ns_current.name
-        ns_current.namespaces.each do |prefix, uri|
-          rev_namespaces[uri] ||= []
-          rev_namespaces[uri] << prefix
-        end
-        ns_current = ns_current.parent
-      end
-
-      rev_namespaces.each do |uri, prefixes|
-        if prefixes.length > 0
-          prefixes.select! { |prefix| prefix != "xmlns" }
-        end
-        namespaces[prefixes.first||"xmlns"] = uri
-      end
 
       while current.name
-        current_name_with_ns = "#{rev_namespaces[current.uri]&.first||"xmlns"}:#{current.name}"
-        xpath << "#{current_name_with_ns}[#{current.parent.children.select { |child| child.name == current.name }.index(current) + 1}]"
+        xpath << current.xpath_name
         current = current.parent
       end
-      [xpath.reverse, namespaces]
+
+      [xpath.reverse, self.namespaces]
     end
   end
 
@@ -72,7 +87,7 @@ module RNV
       tag_attrs = attrs.map { |attr| [attr.uri ? "#{attr.uri}:#{attr.localname}" : attr.localname, attr.value] }
       tag_name = uri ? "#{uri}:#{name}" : name
       namespaces = {}
-      ns.each do |n|
+      ns&.each do |n|
         namespaces[n.first || "xmlns"] = n.last
       end
       @xpath_tree = @xpath_tree.add_child(name, uri, namespaces)
